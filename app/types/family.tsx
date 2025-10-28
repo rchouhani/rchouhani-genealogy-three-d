@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export interface Relation {
   id: number;
@@ -17,4 +18,11 @@ export interface Line {
   child: number;
   type: string;
   line: THREE.Line;
+}
+
+export interface SceneSetup {
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
+  controls: OrbitControls;
 }
