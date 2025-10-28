@@ -3,7 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export interface Relation {
   id: number;
-  type: "child" | "parent" | "sibling";
+  type: "child" | "parent" | "sibling" | "spouse";
 }
 
 export interface Person {
@@ -16,7 +16,6 @@ export interface Person {
 export interface Line {
   parent: number;
   child: number;
-  type: string;
   line: THREE.Line;
 }
 
