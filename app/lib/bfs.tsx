@@ -1,6 +1,4 @@
-import { Line } from '../types/family';
-import { Person } from '../types/family';
-
+import { Line, Person } from '../types/family';
 
 export default function showConnections(startId: number, lines: Line[], familyData: Person[]) {
   const queue = [startId];
