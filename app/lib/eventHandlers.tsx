@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import { Line } from "../types/family";
-import { Person } from "../types/family";
+import { Line, Person } from "../types/family";
 import showConnections from "./bfs";
 
 // En global pour éviter la recréation
