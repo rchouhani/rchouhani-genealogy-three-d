@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { Line } from "../types/family";
 import { Person } from "../types/family";
+import showConnections from "./bfs";
+
 // En global pour éviter la recréation
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -31,6 +33,7 @@ export function handleHover(
   }
 }
 
+// Gestion du click sur les points ainsi que l'affcihage qui va avec
 export function handleClick(
   event: MouseEvent,
   camera: THREE.Camera,
@@ -55,39 +58,7 @@ export function handleClick(
   showConnections(clickedId, lines, familyData);
 }
 
-function showConnections(startId: number, lines: Line[], familyData: Person[]) {
-  const queue = [startId];
-  const visited = new Set(queue);
-  let count = 0;
-
-  //Masquer toutes les lignes
-  lines.forEach((l) => (l.line.visible = false));
-
-  while (queue.length > 0 && count < 10) {
-    const currentId = queue.shift()!; // expliquer cette ligne
-    const person = familyData.find((p) => p.id === currentId);
-    if (!person) continue;
-
-    person.relations.forEach((rel) => {
-      if (!visited.has(rel.id) && count < 10) {
-        visited.add(rel.id);
-        queue.push(rel.id);
-        count++;
-      }
-
-      // Afficher la ligne correspondante
-      lines.forEach((l) => {
-        if (
-          (l.parent === currentId && l.child === rel.id) ||
-          (l.child === currentId && l.parent === rel.id)
-        ) {
-          l.line.visible = true;
-        }
-      });
-    });
-  }
-}
-
+// Gestion de la remise à zéro de la scène
 export function handleReset(
   camera: THREE.PerspectiveCamera,
   controls: any // OrbitControls
