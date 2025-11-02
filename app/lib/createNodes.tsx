@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { Person, SceneSetup } from "../types/family";
 
 export function createNodes(
-  familyData: Person[],
-  { scene }: SceneSetup
+  scene: THREE.Scene,
+  familyData: Person[]
 ): THREE.Mesh[] {
   const points: THREE.Mesh[] = [];
 
