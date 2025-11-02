@@ -1,4 +1,10 @@
-export default function ControlsPanel({ onZoomIn, onZoomOut, onReset }: any) {
+import { ControlsPanelProps } from "../types/family";
+
+export default function ControlsPanel({
+  onZoomIn,
+  onZoomOut,
+  onReset,
+}: ControlsPanelProps) {
   return (
     <div className="fixed bottom-6 right-6 flex flex-col gap-2">
       <button
