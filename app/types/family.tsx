@@ -25,3 +25,9 @@ export interface SceneSetup {
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
 }
+
+export interface ControlsPanelProps {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
+}
