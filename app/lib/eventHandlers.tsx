@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Line, Person } from "../types/family";
 import showConnections from "./bfs";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 // En global pour éviter la recréation
 const raycaster = new THREE.Raycaster();
@@ -86,28 +87,60 @@ export function handleClick(
 }
 
 // Gestion de la remise à zéro de la scène
-export function handleReset(
+// export function handleReset(
+//   camera: THREE.PerspectiveCamera,
+//   lines: Line[],
+//   controls: any // OrbitControls
+// ) {
+//   const onKeyPress = (event: KeyboardEvent) => {
+//     if (event.key.toLowerCase() === "r") {
+//       controls.reset();
+//       camera.position.set(0, 0, 50);
+//       controls.update();
+
+//       lines.forEach((lineObj) => {
+//         lineObj.line.visible = true;
+//       });
+//     }
+//   };
+
+//   window.addEventListener("keydown", onKeyPress);
+
+//   return () => {
+//     window.removeEventListener("keydown", onKeyPress);
+//   };
+// }
+
+export function resetView(
   camera: THREE.PerspectiveCamera,
-  lines: Line[],
-  controls: any // OrbitControls
+  controls: OrbitControls, // OrbitControls
+  lines?: Line[]
+) {
+  controls.reset();
+  camera.position.set(0, 0, 50);
+  controls.target.set(0, 0, 0);
+  controls.update();
+
+  if (lines && Array.isArray(lines)) {
+    lines.forEach((l) => {
+      l.line.visible = true;
+    });
+  }
+}
+
+export function attachResetKeyListener(
+  camera: THREE.PerspectiveCamera,
+  lines: Line[] | undefined,
+  controls: OrbitControls
 ) {
   const onKeyPress = (event: KeyboardEvent) => {
     if (event.key.toLowerCase() === "r") {
-      controls.reset();
-      camera.position.set(0, 0, 50);
-      controls.update();
-
-      lines.forEach((lineObj) => {
-        lineObj.line.visible = true;
-      });
+      resetView(camera, controls, lines);
     }
-  };
+  }
 
   window.addEventListener("keydown", onKeyPress);
-
-  return () => {
-    window.removeEventListener("keydown", onKeyPress);
-  };
+  return () => window.removeEventListener("keydown", onKeyPress)
 }
 
 // Gestion du redimensionnement de la fenêtre d'apparition de l'objet 3D
