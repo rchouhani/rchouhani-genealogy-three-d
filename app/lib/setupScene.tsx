@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { SceneSetup } from "../types/family";
 
-export function setupScene(): SceneSetup {
+export function setupScene(container: HTMLElement | null): SceneSetup {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
@@ -16,7 +16,8 @@ export function setupScene(): SceneSetup {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+
+  container?.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
