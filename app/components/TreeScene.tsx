@@ -17,7 +17,9 @@ export default function TreeScene() {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const { scene, camera, renderer, controls } = setupScene(mountRef.current!);
+    if (!mountRef.current) return;
+
+    const { scene, camera, renderer, controls } = setupScene(mountRef.current);
     const familyData = createFamilyData();
 
     const points = createNodes(scene, familyData);
@@ -30,6 +32,8 @@ export default function TreeScene() {
       handleResize(camera, renderer),
     ];
 
+    
+
     const animate = () => {
       requestAnimationFrame(animate);
       controls.update();
@@ -37,7 +41,10 @@ export default function TreeScene() {
     };
     animate();
 
-    return () => cleanups.forEach((c) => c());
+    return () => {
+      renderer.dispose();
+      mountRef.current?.removeChild(renderer.domElement);
+    }
   }, []);
 
   return <div ref={mountRef} className="w-full h-screen" />;
