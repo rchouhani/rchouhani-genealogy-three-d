@@ -42,8 +42,14 @@ export function handleHover(
 
       const tooltipWidth = tooltip.offsetWidth || 100;
       const tooltipHeight = tooltip.offsetHeight || 20;
-      const x = Math.min(event.clientX + 12, window.innerWidth - tooltipWidth - 10);
-      const y = Math.min(event.clientY + 12, window.innerHeight - tooltipHeight - 10);
+      const x = Math.min(
+        event.clientX + 12,
+        window.innerWidth - tooltipWidth - 10
+      );
+      const y = Math.min(
+        event.clientY + 12,
+        window.innerHeight - tooltipHeight - 10
+      );
       tooltip.style.left = `${x}px`;
       tooltip.style.top = `${y}px`;
     } else {
@@ -101,6 +107,11 @@ export function resetView(
   controls: OrbitControls, // OrbitControls
   lines?: Line[]
 ) {
+  console.log("resetView called", {
+    linesCount: lines?.length ?? "no-lines",
+    linesRef: lines,
+  });
+
   controls.reset();
   camera.position.set(0, 0, 50);
   controls.target.set(0, 0, 0);
@@ -108,7 +119,7 @@ export function resetView(
 
   if (lines && Array.isArray(lines)) {
     lines.forEach((l) => {
-      l.line.visible = true;
+      l.line.visible = false;
     });
   }
 }
@@ -116,11 +127,12 @@ export function resetView(
 // Gestion de la touche "r" pour le reset avec le clavier
 export function attachResetKeyListener(
   camera: THREE.PerspectiveCamera,
-  lines: Line[] | undefined,
+  getLines: () => Line[] | undefined,
   controls: OrbitControls
 ) {
   const onKeyPress = (event: KeyboardEvent) => {
     if (event.key.toLowerCase() === "r") {
+      const lines = getLines();
       resetView(camera, controls, lines);
     }
   };
