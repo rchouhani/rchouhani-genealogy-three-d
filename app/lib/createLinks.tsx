@@ -9,45 +9,45 @@ export function createLinks(
   const lines: Line[] = [];
 
   familyData.forEach((person) => {
-    person.relations
-      .filter((rel) => rel.type === "child")
-      .forEach((rel) => {
-        const from = points.find((p) => p.userData.id === person.id);
-        const to = points.find((p) => p.userData.id === rel.id);
+    person.relations.forEach((rel) => {
+      // We create links for all relation types if you want; keep as needed
+      // find points by userData.id
+      const from = points.find((p) => p.userData?.id === person.id);
+      const to = points.find((p) => p.userData?.id === rel.id);
 
-        const exists = lines.some(
-          (l) =>
-            (l.parent === person.id && l.child === rel.id) ||
-            (l.parent === rel.id && l.child === person.id)
-        );
-        if (!from || !to || exists) return;
+      if (!from || !to) return;
 
-        const color =
-          rel.type === "child"
-            ? 0x00ff00
-            : rel.type === "parent"
-            ? 0xff0000
-            : rel.type === "sibling"
-            ? 0xffff00
-            : 0x00ffff;
+      // prevent duplicate lines
+      const exists = lines.some(
+        (l) =>
+          (l.parent === person.id && l.child === rel.id) ||
+          (l.parent === rel.id && l.child === person.id)
+      );
+      if (exists) return;
 
-        const material = new THREE.LineBasicMaterial({
-          color,
-          transparent: true,
-          opacity: 0.99,
-        });
+      const color =
+        rel.type === "child"
+          ? 0x00ff00
+          : rel.type === "parent"
+          ? 0xff0000
+          : rel.type === "sibling"
+          ? 0xffff00
+          : 0x00ffff;
 
-        const geometry = new THREE.BufferGeometry().setFromPoints([
-          from.position,
-          to.position,
-        ]);
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 });
 
-        const line = new THREE.Line(geometry, material);
-        line.visible = false;
-        scene.add(line);
+      // Use world positions snapshot — clone vectors so the geometry keeps coordinates even if later moved
+      const pFrom = new THREE.Vector3().copy(from.position);
+      const pTo = new THREE.Vector3().copy(to.position);
 
-        lines.push({ parent: person.id, child: rel.id, line });
-      });
+      const geometry = new THREE.BufferGeometry().setFromPoints([pFrom, pTo]);
+
+      const line = new THREE.Line(geometry, material);
+      line.visible = false; // hidden initially
+      scene.add(line);
+
+      lines.push({ parent: person.id, child: rel.id, line });
+    });
   });
 
   return lines;

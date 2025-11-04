@@ -14,10 +14,11 @@ export function handleHover(
 ) {
   const tooltip = document.createElement("div");
   tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(0,0,0,0.7)";
-  tooltip.style.color = "white";
+  tooltip.style.background = "rgba(0,0,0,0.75)";
+  tooltip.style.color = "#fff";
   tooltip.style.padding = "4px 8px";
   tooltip.style.borderRadius = "4px";
+  tooltip.style.fontSize = "12px";
   tooltip.style.pointerEvents = "none";
   tooltip.style.display = "none";
   tooltip.style.zIndex = "1000";
@@ -25,30 +26,38 @@ export function handleHover(
 
   const onMouseMove = (event: MouseEvent) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = (event.clientY / window.innerHeight) * 2 + 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(points);
-
-    document.body.style.cursor =
-      IntersectionObserver.length > 0 ? "pointer" : "default";
+    const intersects = raycaster.intersectObjects(points, false);
 
     if (intersects.length > 0) {
+      document.body.style.cursor = "pointer";
       const intersected = intersects[0].object;
+      // DEBUG LOG
+      // console.log("hover ->", intersected.userData);
+
       tooltip.style.display = "block";
-      tooltip.textContent = intersected.userData.name || "inconnu";
-      tooltip.style.left = `${event.clientX + 10}px`;
-      tooltip.style.top = `${event.clientY + 10}px`;
+      tooltip.textContent = intersected.userData?.name ?? "inconnu";
+
+      const tooltipWidth = tooltip.offsetWidth || 100;
+      const tooltipHeight = tooltip.offsetHeight || 20;
+      const x = Math.min(event.clientX + 12, window.innerWidth - tooltipWidth - 10);
+      const y = Math.min(event.clientY + 12, window.innerHeight - tooltipHeight - 10);
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
     } else {
+      document.body.style.cursor = "default";
       tooltip.style.display = "none";
     }
   };
 
+  // attach to canvas element so mouse coords are relative (renderer.domElement)
   renderer.domElement.addEventListener("mousemove", onMouseMove);
-
   return () => {
     renderer.domElement.removeEventListener("mousemove", onMouseMove);
     document.body.removeChild(tooltip);
+    document.body.style.cursor = "default";
   };
 }
 
@@ -86,31 +95,7 @@ export function handleClick(
   };
 }
 
-// Gestion de la remise à zéro de la scène
-// export function handleReset(
-//   camera: THREE.PerspectiveCamera,
-//   lines: Line[],
-//   controls: any // OrbitControls
-// ) {
-//   const onKeyPress = (event: KeyboardEvent) => {
-//     if (event.key.toLowerCase() === "r") {
-//       controls.reset();
-//       camera.position.set(0, 0, 50);
-//       controls.update();
-
-//       lines.forEach((lineObj) => {
-//         lineObj.line.visible = true;
-//       });
-//     }
-//   };
-
-//   window.addEventListener("keydown", onKeyPress);
-
-//   return () => {
-//     window.removeEventListener("keydown", onKeyPress);
-//   };
-// }
-
+// gestion du reset de la scène avec le bouton reset
 export function resetView(
   camera: THREE.PerspectiveCamera,
   controls: OrbitControls, // OrbitControls
@@ -128,6 +113,7 @@ export function resetView(
   }
 }
 
+// Gestion de la touche "r" pour le reset avec le clavier
 export function attachResetKeyListener(
   camera: THREE.PerspectiveCamera,
   lines: Line[] | undefined,
@@ -137,10 +123,10 @@ export function attachResetKeyListener(
     if (event.key.toLowerCase() === "r") {
       resetView(camera, controls, lines);
     }
-  }
+  };
 
   window.addEventListener("keydown", onKeyPress);
-  return () => window.removeEventListener("keydown", onKeyPress)
+  return () => window.removeEventListener("keydown", onKeyPress);
 }
 
 // Gestion du redimensionnement de la fenêtre d'apparition de l'objet 3D

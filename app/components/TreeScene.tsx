@@ -28,19 +28,27 @@ export default function TreeScene() {
 
     const familyData = createFamilyData();
     const points = createNodes(scene, familyData);
+    console.log("points.length", points.length);
+    points.forEach((p, i) =>
+      console.log(i, p.userData?.id, p.userData?.name, p.position.toArray())
+    );
+
     const lines = createLinks(scene, familyData, points);
+    console.log("lines.length", lines.length);
+    lines.forEach((l) =>
+      console.log("line", l.parent, l.child, l.line.visible)
+    );
 
     const cleanupHover = handleHover(renderer, camera, points);
     const cleanupClick = handleClick(scene, camera, points, lines, familyData);
     const cleanupResize = handleResize(camera, renderer);
-
     const cleanupResetKey = attachResetKeyListener(camera, lines, controls);
 
     const animate = () => {
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
-    }
+    };
     animate();
 
     return () => {
