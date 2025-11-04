@@ -1,4 +1,3 @@
-import ControlsPanel from "./components/ControlsPanel";
 import TreeScene from "./components/TreeScene";
 
 export default function Home() {

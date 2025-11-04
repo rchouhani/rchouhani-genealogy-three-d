@@ -8,7 +8,14 @@ export interface Relation {
 
 export interface Person {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  // birthName: string;
+  // Ne pas oublier d'inclure es dates de nasissance et de mort ainsi que leur gestion en back
+  // birthDate: Date;
+  // deathDate: Date;
+  // birthLocation: string;
+  // deathLocation: string | undefined;
   generation: number;
   relations: Relation[];
 }
