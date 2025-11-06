@@ -1,5 +1,6 @@
 "use client";
 
+import * as THREE from 'three'
 import { useEffect, useRef, useState } from "react";
 import { setupScene } from "../lib/setupScene";
 import { createFamilyData } from "../lib/createFamilyData";
@@ -13,16 +14,15 @@ import {
   resetView,
 } from "../lib/eventHandlers";
 import ControlsPanel from "./ControlsPanel";
-import { SceneSetup, Line } from "../types/family";
+import AddMemberForm from "./AddMemberForm";
+import { SceneSetup, Line, Person } from "../types/family";
 
 export default function TreeScene() {
   const mountRef = useRef<HTMLDivElement>(null);
-
-  // Référence partagée des lignes pour le reset
-  const linesRef = useRef<Line[] | null>(null);
-
-  // Référence aux objets de la scène pour Zoom et Reset
+  const pointsRef = useRef<THREE.Mesh[]>([]);
+  const linesRef = useRef<Line[]>([]);
   const [sceneObjects, setSceneObjects] = useState<SceneSetup | null>(null);
+  const [familyData, setFamilyData] = useState<Person[]>([]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -31,17 +31,28 @@ export default function TreeScene() {
     const { scene, camera, renderer, controls } = setupScene(mountRef.current);
     setSceneObjects({ scene, camera, renderer, controls });
 
-    // === Création des points et lignes ===
-    const familyData = createFamilyData();
-    const points = createNodes(scene, familyData);
-    const lines = createLinks(scene, familyData, points);
+    // === Données de base ===
+    const initialFamily = createFamilyData();
+    setFamilyData(initialFamily);
+
+    // === Création des points et liens ===
+    const points = createNodes(scene, initialFamily);
+    pointsRef.current = points;
+
+    const lines = createLinks(scene, initialFamily, points);
     linesRef.current = lines;
 
-    // === Handlers d'interaction ===
-    const cleanupHover = handleHover(renderer, camera, points);
-    const cleanupClick = handleClick(scene, camera, points, lines, familyData);
+    // === Handlers d’événements ===
+    const cleanupHover = handleHover(renderer, camera, pointsRef.current);
+    const cleanupClick = handleClick(
+      scene,
+      camera,
+      pointsRef.current,
+      linesRef.current,
+      familyData
+    );
     const cleanupResize = handleResize(camera, renderer);
-    const cleanupResetKey = attachResetKeyListener(camera, () => linesRef.current ?? undefined, controls);
+    const cleanupResetKey = attachResetKeyListener(camera, () => linesRef.current, controls);
 
     // === Animation ===
     const animate = () => {
@@ -51,7 +62,7 @@ export default function TreeScene() {
     };
     animate();
 
-    // === Nettoyage à la destruction ===
+    // === Nettoyage ===
     return () => {
       cleanupHover && cleanupHover();
       cleanupClick && cleanupClick();
@@ -63,7 +74,7 @@ export default function TreeScene() {
     };
   }, []);
 
-  // === Contrôles externes ===
+  // === Fonctions pour le panel ===
   const handleZoomIn = () => {
     if (!sceneObjects) return;
     sceneObjects.camera.position.z -= 5;
@@ -76,7 +87,35 @@ export default function TreeScene() {
 
   const handleResetClick = () => {
     if (!sceneObjects) return;
-    resetView(sceneObjects.camera, sceneObjects.controls, linesRef.current ?? undefined);
+    resetView(sceneObjects.camera, sceneObjects.controls, linesRef.current);
+  };
+
+  // === Fonction pour ajouter un membre dynamiquement ===
+  const handleAddMember = (newMember: Omit<Person, "id">) => {
+    if (!sceneObjects) return;
+
+    // Générer un nouvel ID unique
+    const newId = Math.max(...familyData.map((p) => p.id)) + 1;
+    const memberWithId: Person = { ...newMember, id: newId };
+    setFamilyData((prev) => [...prev, memberWithId]);
+
+    // Créer un nouveau point
+    const newSphere = createNodes(sceneObjects.scene, [memberWithId])[0];
+
+    // Mettre à jour userData correctement pour le hover
+    newSphere.userData = {
+      id: memberWithId.id,
+      firstName: memberWithId.firstName,
+      lastName: memberWithId.lastName,
+      generation: memberWithId.generation,
+      relations: memberWithId.relations,
+    };
+
+    pointsRef.current.push(newSphere);
+
+    // Créer les liens associés
+    const newLines = createLinks(sceneObjects.scene, [memberWithId], pointsRef.current);
+    linesRef.current.push(...newLines);
   };
 
   return (
@@ -87,6 +126,7 @@ export default function TreeScene() {
         onZoomOut={handleZoomOut}
         onReset={handleResetClick}
       />
+      <AddMemberForm familyMembers={familyData} onAddMember={handleAddMember} />
     </>
   );
 }

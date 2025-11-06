@@ -14,58 +14,52 @@ export function handleHover(
 ) {
   const tooltip = document.createElement("div");
   tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(0,0,0,0.75)";
-  tooltip.style.color = "#fff";
+  tooltip.style.background = "rgba(0,0,0,0.7)";
+  tooltip.style.color = "white";
   tooltip.style.padding = "4px 8px";
   tooltip.style.borderRadius = "4px";
-  tooltip.style.fontSize = "12px";
   tooltip.style.pointerEvents = "none";
   tooltip.style.display = "none";
   tooltip.style.zIndex = "1000";
+  tooltip.style.whiteSpace = "nowrap";
   document.body.appendChild(tooltip);
 
   const onMouseMove = (event: MouseEvent) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    // Normalisation en tenant compte du canvas et non de la fenêtre
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(points, false);
+    const intersects = raycaster.intersectObjects(points);
 
     if (intersects.length > 0) {
-      document.body.style.cursor = "pointer";
       const intersected = intersects[0].object;
-      // DEBUG LOG
-      // console.log("hover ->", intersected.userData);
+      document.body.style.cursor = "pointer";
 
       tooltip.style.display = "block";
-      tooltip.textContent = intersected.userData?.name ?? "inconnu";
+      tooltip.textContent = intersected.userData?.firstName
+        ? `${intersected.userData.firstName} ${intersected.userData.lastName}`
+        : intersected.userData?.name || "inconnu";
 
-      const tooltipWidth = tooltip.offsetWidth || 100;
-      const tooltipHeight = tooltip.offsetHeight || 20;
-      const x = Math.min(
-        event.clientX + 12,
-        window.innerWidth - tooltipWidth - 10
-      );
-      const y = Math.min(
-        event.clientY + 12,
-        window.innerHeight - tooltipHeight - 10
-      );
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
+      // Position du tooltip
+      tooltip.style.left = `${event.clientX + 10}px`;
+      tooltip.style.top = `${event.clientY + 10}px`;
     } else {
       document.body.style.cursor = "default";
       tooltip.style.display = "none";
     }
   };
 
-  // attach to canvas element so mouse coords are relative (renderer.domElement)
   renderer.domElement.addEventListener("mousemove", onMouseMove);
+
   return () => {
     renderer.domElement.removeEventListener("mousemove", onMouseMove);
     document.body.removeChild(tooltip);
-    document.body.style.cursor = "default";
   };
 }
+
 
 // Gestion du click sur les points ainsi que l'affcihage qui va avec
 export function handleClick(
