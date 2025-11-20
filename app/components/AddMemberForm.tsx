@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { Person, Relation } from "../types/family";
+import {
+  RelationType as GenRelationType,
+  computeGeneration,
+} from "../utils/generation";
+import RelationSelector from "./RelationSelector";
 
 interface AddMemberFormProps {
   familyMembers: Person[];
@@ -11,96 +16,157 @@ interface AddMemberFormProps {
   ) => void;
 }
 
+function mapToStoredRelationType(r: GenRelationType): Relation["type"] {
+  switch (r) {
+    case "child":
+    case "son":
+    case "daughter":
+      return "child";
+
+    case "parent":
+    case "mother":
+    case "father":
+    case "stepFather":
+    case "stepMother":
+      return "parent";
+
+    case "spouse":
+    case "husband":
+    case "wife":
+    case "sonInLaw":
+    case "daughterInLaw":
+    case "brotherInLaw":
+    case "sisterInLaw":
+      return "spouse";
+
+    case "brother":
+    case "sister":
+    case "stepBrother":
+    case "stepSister":
+    case "cousin":
+    case "uncle":
+    case "aunt":
+    case "nephew":
+    case "niece":
+      return "sibling";
+
+    case "grandParent":
+    case "grandFather":
+    case "grandMother":
+    case "grandChild":
+      return r === "grandChild" ? "child" : "parent";
+
+    default:
+      return "sibling";
+  }
+}
+
 export default function AddMemberForm({
   familyMembers,
   onAddMember,
 }: AddMemberFormProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [generation, setGeneration] = useState(1);
-  const [relationType, setRelationType] = useState<Relation["type"]>("child");
-  const [relationTargetId, setRelationTargetId] = useState<
-    number | undefined
-  >();
+  const [relationType, setRelationType] = useState<GenRelationType>("child");
+  const [relationTargetId, setRelationTargetId] = useState<number | "">("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !relationTargetId) return;
+
+    if (!firstName.trim() || !lastName.trim() || relationTargetId === "") {
+      alert("il faut remplir au moins un champ");
+      return;
+    }
+
+    const targetId = Number(relationTargetId);
+
+    const target = familyMembers.find((m) => m.id === targetId);
+    if (!target) {
+      alert("Cible introuvable - changer de cible");
+      return;
+    }
+
+    const generation = computeGeneration(target.generation, relationType);
+
+    const storedType = mapToStoredRelationType(relationType);
 
     const newMember: Omit<Person, "id"> = {
-      firstName,
-      lastName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       generation,
       relations: [
         {
-          id: relationTargetId,
-          type: relationType,
+          id: target.id,
+          type: storedType,
         },
       ],
     };
-    onAddMember(newMember, relationTargetId);
+
+    onAddMember(newMember, target.id);
 
     setFirstName("");
     setLastName("");
-    setGeneration(1);
     setRelationType("child");
-    setRelationTargetId(undefined);
+    setRelationTargetId("");
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-2 p-4 bg-gray-100 rounded-md w-64"
+      className="flex flex-col gap-2 p-4 bg-white dark:bg-gray-800 rounded-md w-72 shadow"
     >
       <input
         type="text"
-        placeholder=" Prénom"
+        placeholder="Prénom"
         value={firstName}
         onChange={(e) => setFirstName(e.target.value)}
-        className="border px-2 py-1 rounded"
+        className="border px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100"
         required
       />
+
       <input
         type="text"
-        placeholder=" Nom"
+        placeholder="Nom"
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
-        className="border px-2 py-1 rounded"
+        className="border px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100"
         required
       />
-      <input
-        type="number"
-        placeholder="Génération"
-        value={generation}
-        min={0}
-        onChange={(e) => setGeneration(Number(e.target.value))}
-        className="border px-2 py-1 rounded"
+
+      <label className="text-sm text-gray-600 dark:text-gray-300">
+        Type de relation
+      </label>
+      
+    <RelationSelector
+    value={relationType}
+    onChange={setRelationType}
+    />
+
+      <label className="text-sm text-gray-600 dark:text-gray-300">
+        Personne de référence
+      </label>
+      <select
+        value={relationTargetId}
+        onChange={(e) =>
+          setRelationTargetId(
+            e.target.value === "" ? "" : Number(e.target.value)
+          )
+        }
+        className="border px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100"
         required
-      />
-      <select
-      value={relationType}
-      onChange={(e) => setRelationType(e.target.value as Relation["type"])}
-      className="border px-2 py-1 rounded"
       >
-        <option value="child">Enfant</option>
-        <option value="parent">Parent</option>
-        <option value="sibling">Frère / Soeur</option>
-        <option value="spouse">Conjoint(e)</option>
-      </select>
-      <select
-      value={relationTargetId}
-      onChange={(e) => setRelationTargetId(Number(e.target.value))}
-      className="border px-2 py-1 rounded"
-      required
-      >
-        <option value="">Choisir la personne de référence</option>
+        <option value="">Choisir une personne</option>
         {familyMembers.map((member) => (
-            <option key={member.id} value={member.id}>
-                {member.firstName} {member.lastName} (Génération {member.generation})
-            </option>
+          <option key={member.id} value={member.id}>
+            {member.firstName} {member.lastName} (Gén. {member.generation})
+          </option>
         ))}
       </select>
-      <button type="submit" className="bg-blue-500 text-white px-3 py-1 rounded">
+
+      <button
+        type="submit"
+        className="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+      >
         Ajouter
       </button>
     </form>
