@@ -17,7 +17,11 @@ import ControlsPanel from "./ControlsPanel";
 import AddMemberForm from "./AddMemberForm";
 import { SceneSetup, Line, Person } from "../types/family";
 
-export default function TreeScene() {
+interface TreeSceneProps {
+  selectedPerson: Person | null;
+}
+
+export default function TreeScene({ selectedPerson }: TreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<THREE.Mesh[]>([]);
   const linesRef = useRef<Line[]>([]);
