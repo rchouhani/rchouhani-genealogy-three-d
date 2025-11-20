@@ -16,7 +16,7 @@ export default function Page() {
   };
 
   return (
-    <main className="flex flex-col md:flex-row items-start justify-between gap-6 p-6">
+    <main className="flex flex-col md:flex-row items-start justify-between gap-6">
       <div className="flex-1">
         <TreeScene />
       </div>
