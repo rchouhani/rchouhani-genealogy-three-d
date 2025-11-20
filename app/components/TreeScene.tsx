@@ -1,6 +1,6 @@
 "use client";
 
-import * as THREE from 'three'
+import * as THREE from "three";
 import { useEffect, useRef, useState } from "react";
 import { setupScene } from "../lib/setupScene";
 import { createFamilyData } from "../lib/createFamilyData";
@@ -52,7 +52,11 @@ export default function TreeScene() {
       familyData
     );
     const cleanupResize = handleResize(camera, renderer);
-    const cleanupResetKey = attachResetKeyListener(camera, () => linesRef.current, controls);
+    const cleanupResetKey = attachResetKeyListener(
+      camera,
+      () => linesRef.current,
+      controls
+    );
 
     // === Animation ===
     const animate = () => {
@@ -114,7 +118,11 @@ export default function TreeScene() {
     pointsRef.current.push(newSphere);
 
     // Créer les liens associés
-    const newLines = createLinks(sceneObjects.scene, [memberWithId], pointsRef.current);
+    const newLines = createLinks(
+      sceneObjects.scene,
+      [memberWithId],
+      pointsRef.current
+    );
     linesRef.current.push(...newLines);
   };
 
@@ -126,7 +134,12 @@ export default function TreeScene() {
         onZoomOut={handleZoomOut}
         onReset={handleResetClick}
       />
-      <AddMemberForm familyMembers={familyData} onAddMember={handleAddMember} />
+      <div className="absolute top-5 left-5 bg-white p-4 rounded shadow">
+        <AddMemberForm
+          familyMembers={familyData}
+          onAddMember={handleAddMember}
+        />
+      </div>
     </>
   );
 }
