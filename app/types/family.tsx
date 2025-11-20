@@ -10,13 +10,13 @@ export interface Person {
   id: number;
   firstName: string;
   lastName: string;
+  generation: number;
   // birthName: string;
-  // Ne pas oublier d'inclure es dates de nasissance et de mort ainsi que leur gestion en back
+  // Ne pas oublier d'inclure les dates de naissance et de mort ainsi que leur gestion en back
   // birthDate: Date;
   // deathDate: Date;
   // birthLocation: string;
   // deathLocation: string | undefined;
-  generation: number;
   relations: Relation[];
 }
 
