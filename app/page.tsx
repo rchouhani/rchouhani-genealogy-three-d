@@ -1,44 +1,50 @@
 "use client";
 
-import TreeScene from "./components/TreeScene";
 import { useState } from "react";
+import TreeScene from "./components/TreeScene";
+import SearchEngine from "./components/SearchEngine";
 import { Person } from "./types/family";
 import { createFamilyData } from "./lib/createFamilyData";
-import SearchEngine from "./components/SearchEngine";
 
 export default function Page() {
   const [familyData, setFamilyData] = useState<Person[]>(createFamilyData());
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
-  // ➜ Ajout d'un nouveau membre
+  // Ajout d'un membre
   const handleAddMember = (newMember: Omit<Person, "id">) => {
     const newId = familyData.length + 1;
     const member: Person = { id: newId, ...newMember };
     setFamilyData([...familyData, member]);
   };
 
-  // ➜ Sélection dans le SearchEngine
+  // Sélection depuis SearchEngine
   const handleSelectPerson = (person: Person) => {
     setSelectedPerson(person);
   };
 
-  // ➜ Appui sur le bouton +
+  // Ouverture du formulaire
   const handleCreatePerson = () => {
-    console.log("Ouverture du AddMemberForm…");
-    // Ici tu ouvriras ton modal AddMemberForm
+    console.log("Ouvrir AddMemberForm");
   };
 
   return (
-    <main className="flex flex-col md:flex-row items-start justify-between gap-6">
-      <div className="flex-1 relative">
-  <SearchEngine
-    persons={familyData}
-    onSelectPerson={handleSelectPerson}
-    onCreatePerson={handleCreatePerson}
-  />
+    <main className="relative w-full h-screen flex items-center justify-center">
+      
+      {/* SearchEngine centré en toutes circonstances */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+        <SearchEngine
+          persons={familyData}
+          onSelectPerson={handleSelectPerson}
+          onCreatePerson={handleCreatePerson}
+        />
+      </div>
 
-  <TreeScene selectedPerson={selectedPerson} />
-</div>
+      {/* Scène affichée UNIQUEMENT après sélection */}
+      {selectedPerson && (
+        <div className="absolute inset-0 z-10">
+          <TreeScene selectedPerson={selectedPerson} />
+        </div>
+      )}
     </main>
   );
 }
