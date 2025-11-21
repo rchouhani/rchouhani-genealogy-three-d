@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Person } from "../types/family"; // ← adapte selon ton projet
+import { useState } from "react";
+import { Person } from "../types/family";
 
 interface SearchEngineProps {
-  persons: Person[];                      // Toute la liste des personnes
-  onSelectPerson: (person: Person) => void; // Lorsqu’on clique sur une personne trouvée
-  onCreatePerson: () => void;               // Ouvre AddMemberForm
+  persons: Person[];
+  onSelectPerson: (person: Person) => void;
+  onCreatePerson: () => void;
 }
 
 export default function SearchEngine({
@@ -15,96 +15,84 @@ export default function SearchEngine({
   onCreatePerson,
 }: SearchEngineProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Person[]>([]);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
+  const results = persons.filter((p) => {
+    const full = `${p.firstName} ${p.lastName}`.toLowerCase();
+    return full.includes(query.toLowerCase());
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (value.trim().length === 0) {
+      setError("");
       return;
     }
 
-    const q = query.toLowerCase();
-    const filtered = persons.filter(
-      (p) =>
-        p.firstName.toLowerCase().includes(q) ||
-        p.lastName.toLowerCase().includes(q)
-    );
+    if (results.length === 0) {
+      setError("Aucun résultat trouvé.");
+    } else {
+      setError("");
+    }
+  };
 
-    setResults(filtered);
-  }, [query, persons]);
+  const handleSelect = (person: Person) => {
+    setQuery("");
+    setError("");
+    onSelectPerson(person);
+  };
 
-  const hasPersons = persons.length > 0;
-  const showPlusButton = persons.length > 0 && persons.length < 20;
+  const showCreateButton =
+    persons.length === 0 || persons.length < 20;
 
   return (
-    <div className="w-full max-w-xl mx-auto mt-10 relative">
-
-      {/* Champ de recherche */}
-      <div className="flex items-center gap-2">
+    <div className="w-full max-w-md mx-auto p-4 bg-white rounded shadow-lg">
+      <div className="flex items-center gap-3 mb-2">
         <input
           type="text"
-          placeholder={
-            hasPersons
-              ? "Rechercher une personne…"
-              : "Aucune entrée pour le moment"
-          }
+          className="w-full p-2 border rounded text-gray-500"
+          placeholder="Rechercher une personne…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full border px-4 py-3 rounded-xl shadow-sm dark:bg-gray-800 dark:text-gray-200"
+          onChange={handleChange}
         />
 
-        {/* Bouton + seulement si entre 1 et 20 personnes */}
-        {showPlusButton && (
+        {showCreateButton && (
           <button
             onClick={onCreatePerson}
-            className="
-              w-10 h-10 flex items-center justify-center rounded-xl
-              bg-blue-600 text-white text-2xl font-bold shadow
-              hover:bg-blue-700 transition
-            "
+            className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             +
           </button>
         )}
       </div>
 
-      {/* Aucun membre encore → Gros bouton central */}
-      {!hasPersons && (
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={onCreatePerson}
-            className="
-              px-6 py-3 rounded-xl bg-green-600 text-white font-semibold
-              shadow-lg hover:bg-green-700 transition text-lg
-            "
-          >
-            Ajouter votre premier membre
-          </button>
-        </div>
+      {/* Message d’erreur */}
+      {error && (
+        <p className="text-red-600 text-sm mb-2">{error}</p>
       )}
 
-      {/* Résultats de recherche */}
-      {results.length > 0 && (
-        <div
-          className="
-            absolute left-0 right-0 mt-2 bg-white dark:bg-gray-700 
-            border rounded-xl shadow-lg max-h-60 overflow-y-auto z-20
-          "
-        >
+      {/* Résultats */}
+      {query.length > 0 && results.length > 0 && (
+        <ul className="border rounded bg-gray-50 max-h-60 overflow-y-auto">
           {results.map((person) => (
-            <div
+            <li
               key={person.id}
-              className="px-4 py-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-              onClick={() => {
-                onSelectPerson(person);
-                setQuery("");
-                setResults([]);
-              }}
+              onClick={() => handleSelect(person)}
+              className="p-2 cursor-pointer hover:bg-gray-200"
             >
               {person.firstName} {person.lastName}
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
+      )}
+
+      {/* Aucun résultat */}
+      {query.length > 0 && results.length === 0 && !error && (
+        <p className="text-gray-600 text-sm">
+          Aucun résultat.
+        </p>
       )}
     </div>
   );
