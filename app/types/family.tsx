@@ -11,12 +11,12 @@ export interface Person {
   firstName: string;
   lastName: string;
   generation: number;
-  // birthName: string;
+  // birthName?: string;
   // Ne pas oublier d'inclure les dates de naissance et de mort ainsi que leur gestion en back
   // birthDate: Date;
-  // deathDate: Date;
-  // birthLocation: string;
-  // deathLocation: string | undefined;
+  // deathDate?: Date;
+  // birthLocation?: string;
+  // deathLocation?: string | undefined;
   relations: Relation[];
 }
 
