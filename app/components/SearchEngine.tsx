@@ -44,8 +44,7 @@ export default function SearchEngine({
     onSelectPerson(person);
   };
 
-  const showCreateButton =
-    persons.length === 0 || persons.length < 20;
+  const showCreateButton = persons.length === 0 || persons.length < 20;
 
   return (
     <div className="w-full max-w-md mx-auto p-4 bg-white rounded shadow-lg">
@@ -69,9 +68,7 @@ export default function SearchEngine({
       </div>
 
       {/* Message d’erreur */}
-      {error && (
-        <p className="text-red-600 text-sm mb-2">{error}</p>
-      )}
+      {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
       {/* Résultats */}
       {query.length > 0 && results.length > 0 && (
@@ -90,9 +87,7 @@ export default function SearchEngine({
 
       {/* Aucun résultat */}
       {query.length > 0 && results.length === 0 && !error && (
-        <p className="text-gray-600 text-sm">
-          Aucun résultat.
-        </p>
+        <p className="text-gray-600 text-sm">Aucun résultat.</p>
       )}
     </div>
   );
