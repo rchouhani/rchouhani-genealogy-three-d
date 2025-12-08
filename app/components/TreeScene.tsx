@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { useEffect, useRef, useState } from "react";
 import { setupScene } from "../lib/setupScene";
-import { Person, Line } from '../types/family';
+import { Person, Line, SceneSetup } from '../types/family';
 import { createFamilyData } from "../lib/createFamilyData";
 import { createNodes } from "../lib/createNodes";
 import { createLinks } from "../lib/createLinks";
@@ -16,7 +16,6 @@ import {
 } from "../lib/eventHandlers";
 import ControlsPanel from "./ControlsPanel";
 import AddMemberForm from "./AddMemberForm";
-import { SceneSetup, Line, Person } from "../types/family";
 
 export default function TreeScene() {
   const mountRef = useRef<HTMLDivElement>(null);
