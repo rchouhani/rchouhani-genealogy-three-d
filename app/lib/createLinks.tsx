@@ -4,7 +4,7 @@ import { Person, Line, SceneSetup } from "../types/family";
 export function createLinks(
   familyData: Person[],
   points: THREE.Mesh[],
-  { scene }: SceneSetup
+  scene: THREE.Scene
 ): Line[] {
   const lines: Line[] = [];
 
