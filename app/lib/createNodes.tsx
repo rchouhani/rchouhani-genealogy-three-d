@@ -1,32 +1,43 @@
 import * as THREE from "three";
-import { Person, SceneSetup } from "../types/family";
+import { Person } from "../types/family";
 
 export function createNodes(
-  familyData: Person[],
-  scene: THREE.Scene
+  scene: THREE.Scene,
+  familyData: Person[]
 ): THREE.Mesh[] {
   const points: THREE.Mesh[] = [];
 
   const sphereGeo = new THREE.SphereGeometry(0.6, 16, 16);
-  const sphereMat = new THREE.MeshBasicMaterial({ color: 0x007bff });
+  const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x007bff });
 
-  // Voir pour rendre ces valeurs dynamiques et voir les typages des variables
   const spacingX = 8;
   const spacingY = 6;
   const spacingZ = 5;
 
   familyData.forEach((person, index) => {
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat.clone()); // expliquer le .clone
-    const gen = person.generation;
+    const sphereMat = baseMaterial.clone();
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
 
-    const siblingsAtGen = familyData.filter((p) => p.generation === gen);
-    const x =
-      (siblingsAtGen.indexOf(person) - siblingsAtGen.length / 2) * spacingX;
+    const gen = typeof person.generation === "number" ? person.generation : 0;
+    const sameGen = familyData.filter((p) => p.generation === gen);
+    // findIndex by id is robust
+    const posInGen = sameGen.findIndex((p) => p.id === person.id);
+    // fallback if not found
+    const safePosInGen = posInGen >= 0 ? posInGen : index;
+
+    const x = (safePosInGen - sameGen.length / 2) * spacingX;
     const y = -gen * spacingY;
-    const z = (index % 2 === 0 ? 1 : 1) * spacingZ;
+    const z = (index % 2 === 0 ? 1 : -1) * spacingZ;
 
     sphere.position.set(x, y, z);
-    sphere.userData = person;
+
+    // IMPORTANT: set userData on the mesh (not on geometry)
+    sphere.userData = {
+      id: person.id,
+      name: person.firstName,
+      generation: person.generation,
+      relations: person.relations,
+    };
 
     scene.add(sphere);
     points.push(sphere);

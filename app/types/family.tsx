@@ -8,8 +8,15 @@ export interface Relation {
 
 export interface Person {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   generation: number;
+  // birthName: string;
+  // Ne pas oublier d'inclure les dates de naissance et de mort ainsi que leur gestion en back
+  // birthDate: Date;
+  // deathDate: Date;
+  // birthLocation: string;
+  // deathLocation: string | undefined;
   relations: Relation[];
 }
 
@@ -24,4 +31,10 @@ export interface SceneSetup {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
+}
+
+export interface ControlsPanelProps {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
 }
