@@ -1,35 +1,61 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { SceneSetup } from "../types/family";
 
-export function setupScene(container: HTMLElement | null): SceneSetup {
+export function setupScene(container: HTMLDivElement): SceneSetup & {
+  dispose: () => void;
+} {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
   const camera = new THREE.PerspectiveCamera(
     60,
-    mount.clientWidth / mount.clientHeight,
+    container.clientWidth / container.clientHeight,
     0.1,
     1000
   );
   camera.position.set(0, 0, 40);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
 
-  container?.appendChild(renderer.domElement);
+  container.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.enablePan = true;
   controls.enableZoom = true;
 
+  let frameId: number | null = null;
+
   const animate = () => {
-    requestAnimationFrame(animate);
+    frameId = requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
   };
 
+  // ⚠️ L'animation est volontairement démarrée ici
   animate();
 
-  return { scene, camera, renderer, controls };
+  const dispose = () => {
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+
+    controls.dispose();
+    renderer.dispose();
+
+    if (renderer.domElement.parentNode === container) {
+      container.removeChild(renderer.domElement);
+    }
+  };
+
+  return {
+    scene,
+    camera,
+    renderer,
+    controls,
+    dispose,
+  };
 }

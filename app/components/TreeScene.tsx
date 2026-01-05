@@ -28,7 +28,7 @@ export default function TreeScene() {
     if (!mountRef.current) return;
 
     // === Initialisation de la scène ===
-    const { scene, camera, renderer, controls } = setupScene(mountRef.current);
+    const { scene, camera, renderer, controls, dispose } = setupScene(mountRef.current);
     setSceneObjects({ scene, camera, renderer, controls });
 
     // === Données de base ===
@@ -45,6 +45,7 @@ export default function TreeScene() {
     // === Handlers d’événements ===
     const cleanupHover = handleHover(renderer, camera, pointsRef.current);
     const cleanupClick = handleClick(
+      renderer,
       scene,
       camera,
       pointsRef.current,
@@ -73,9 +74,11 @@ export default function TreeScene() {
       cleanupResize && cleanupResize();
       cleanupResetKey && cleanupResetKey();
 
-      renderer.dispose();
+      dispose();
       mountRef.current?.removeChild(renderer.domElement);
     };
+
+    
   }, []);
 
   // === Fonctions pour le panel ===

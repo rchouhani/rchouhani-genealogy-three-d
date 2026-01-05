@@ -13,6 +13,8 @@ export function handleHover(
   camera: THREE.Camera,
   points: THREE.Mesh[]
 ) {
+  // TODO Phase 1: mutualiser le tooltip (singleton) pour éviter les recréations DOM
+
   const tooltip = document.createElement("div");
   tooltip.style.position = "absolute";
   tooltip.style.background = "rgba(0,0,0,0.7)";
@@ -61,9 +63,9 @@ export function handleHover(
   };
 }
 
-
 // Gestion du click sur les points ainsi que l'affcihage qui va avec
 export function handleClick(
+  renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.Camera,
   points: THREE.Mesh[],
@@ -73,8 +75,10 @@ export function handleClick(
   const selectedIds = new Set<number>();
 
   const onClick = (event: MouseEvent) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+const rect = renderer.domElement.getBoundingClientRect();
+mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(points);
@@ -89,10 +93,10 @@ export function handleClick(
     showConnections(clickedId, lines, familyData);
   };
 
-  window.addEventListener("click", onClick);
+  renderer.domElement.addEventListener("click", onClick);
 
   return () => {
-    window.removeEventListener("click", onClick);
+    renderer.domElement.removeEventListener("click", onClick);
   };
 }
 
@@ -147,9 +151,9 @@ export function handleResize(
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
-  window.addEventListener("resize", onResize);
+  renderer.domElement.addEventListener("resize", onResize);
 
   return () => {
-    window.removeEventListener("resize", onResize);
+    renderer.domElement.removeEventListener("resize", onResize);
   };
 }
