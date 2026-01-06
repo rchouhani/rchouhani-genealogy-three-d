@@ -59,9 +59,11 @@ export default function TreeScene() {
       controls
     );
 
+    let frameId: number;
+
     // === Animation ===
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
@@ -69,6 +71,8 @@ export default function TreeScene() {
 
     // === Nettoyage ===
     return () => {
+      cancelAnimationFrame(frameId)
+
       cleanupHover && cleanupHover();
       cleanupClick && cleanupClick();
       cleanupResize && cleanupResize();

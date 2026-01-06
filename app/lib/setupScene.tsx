@@ -27,22 +27,7 @@ export function setupScene(container: HTMLDivElement): SceneSetup & {
   controls.enablePan = true;
   controls.enableZoom = true;
 
-  let frameId: number | null = null;
-
-  const animate = () => {
-    frameId = requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  };
-
-  // ⚠️ L'animation est volontairement démarrée ici
-  animate();
-
   const dispose = () => {
-    if (frameId !== null) {
-      cancelAnimationFrame(frameId);
-    }
-
     controls.dispose();
     renderer.dispose();
 
