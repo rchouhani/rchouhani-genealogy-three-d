@@ -93,6 +93,7 @@ export default function AddMemberForm({
     const newMember: Omit<Person, "id"> = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
+      status: `${firstName.trim()} ${lastName.trim()}`,
       generation,
       relations: [
         {

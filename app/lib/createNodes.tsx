@@ -34,7 +34,9 @@ export function createNodes(
     // IMPORTANT: set userData on the mesh (not on geometry)
     sphere.userData = {
       id: person.id,
-      name: person.firstName,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      status: person.status,
       generation: person.generation,
       relations: person.relations,
     };

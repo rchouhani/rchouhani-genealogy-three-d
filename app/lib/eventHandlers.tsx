@@ -17,7 +17,7 @@ export function handleHover(
 
   const tooltip = document.createElement("div");
   tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(0,0,0,0.7)";
+  tooltip.style.background = "rgba(228, 22, 22, 0.7)";
   tooltip.style.color = "white";
   tooltip.style.padding = "4px 8px";
   tooltip.style.borderRadius = "4px";
@@ -26,8 +26,10 @@ export function handleHover(
   tooltip.style.zIndex = "1000";
   tooltip.style.whiteSpace = "nowrap";
   document.body.appendChild(tooltip);
+  let active = true;
 
   const onMouseMove = (event: MouseEvent) => {
+    if (!active) return;
     const rect = renderer.domElement.getBoundingClientRect();
 
     // Normalisation en tenant compte du canvas et non de la fenêtre
@@ -39,12 +41,15 @@ export function handleHover(
 
     if (intersects.length > 0) {
       const intersected = intersects[0].object;
+      console.log("intersected value", intersects[0].object)
       document.body.style.cursor = "pointer";
 
       tooltip.style.display = "block";
-      tooltip.textContent = intersected.userData?.firstName
-        ? `${intersected.userData.firstName} ${intersected.userData.lastName}`
-        : intersected.userData?.name || "inconnu";
+      tooltip.textContent =
+        intersected.userData?.status ??
+        (`${intersected.userData?.firstName ?? ""} 
+          ${intersected.userData?.lastName ?? ""}`
+          .trim() || "inconnu");
 
       // Position du tooltip
       tooltip.style.left = `${event.clientX + 10}px`;
@@ -58,6 +63,7 @@ export function handleHover(
   renderer.domElement.addEventListener("mousemove", onMouseMove);
 
   return () => {
+    active = false;
     renderer.domElement.removeEventListener("mousemove", onMouseMove);
     document.body.removeChild(tooltip);
   };
@@ -70,15 +76,14 @@ export function handleClick(
   camera: THREE.Camera,
   points: THREE.Mesh[],
   lines: Line[],
-  familyData: Person[]
+  familyDataRef: React.RefObject<Person[]>
 ) {
   const selectedIds = new Set<number>();
 
   const onClick = (event: MouseEvent) => {
-const rect = renderer.domElement.getBoundingClientRect();
-mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(points);
@@ -90,7 +95,7 @@ mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     if (!selectedIds.has(clickedId)) selectedIds.add(clickedId);
 
-    showConnections(clickedId, lines, familyData);
+    showConnections(clickedId, lines, familyDataRef.current);
   };
 
   renderer.domElement.addEventListener("click", onClick);

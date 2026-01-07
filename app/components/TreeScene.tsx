@@ -23,6 +23,7 @@ export default function TreeScene() {
   const linesRef = useRef<Line[]>([]);
   const [sceneObjects, setSceneObjects] = useState<SceneSetup | null>(null);
   const [familyData, setFamilyData] = useState<Person[]>([]);
+  const familyDataRef = useRef<Person[]>([]);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -34,6 +35,7 @@ export default function TreeScene() {
     // === Données de base ===
     const initialFamily = createFamilyData();
     setFamilyData(initialFamily);
+    familyDataRef.current = initialFamily;
 
     // === Création des points et liens ===
     const points = createNodes(scene, initialFamily);
@@ -50,7 +52,7 @@ export default function TreeScene() {
       camera,
       pointsRef.current,
       linesRef.current,
-      familyData
+      familyDataRef
     );
     const cleanupResize = handleResize(camera, renderer);
     const cleanupResetKey = attachResetKeyListener(
@@ -106,9 +108,11 @@ export default function TreeScene() {
     if (!sceneObjects) return;
 
     // Générer un nouvel ID unique
-    const newId = Math.max(...familyData.map((p) => p.id)) + 1;
+    const newId = Math.max(...familyDataRef.current.map((p) => p.id)) + 1;
     const memberWithId: Person = { ...newMember, id: newId };
-    setFamilyData((prev) => [...prev, memberWithId]);
+    familyDataRef.current = [...familyDataRef.current, memberWithId,];
+
+    setFamilyData(familyDataRef.current);
 
     // Créer un nouveau point
     const newSphere = createNodes(sceneObjects.scene, [memberWithId])[0];
@@ -116,6 +120,7 @@ export default function TreeScene() {
     // Mettre à jour userData correctement pour le hover
     newSphere.userData = {
       id: memberWithId.id,
+      status: memberWithId.status,
       firstName: memberWithId.firstName,
       lastName: memberWithId.lastName,
       generation: memberWithId.generation,

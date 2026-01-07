@@ -8,6 +8,7 @@ export interface Relation {
 
 export interface Person {
   id: number;
+  status: string;
   firstName: string;
   lastName: string;
   generation: number;
