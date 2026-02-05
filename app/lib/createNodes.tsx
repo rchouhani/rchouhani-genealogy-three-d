@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Création des points (nodes) représentant les personnes.
+ *
+ * Chaque personne devient une sphère 3D positionnée selon sa génération.
+ * Les données de la personne sont stockées dans mesh.userData pour être
+ * accessibles lors des interactions (hover, click).
+ *
+ * @param scene      - Scène Three.js où ajouter les meshes.
+ * @param familyData - Liste des personnes à représenter.
+ * @returns Liste des meshes créés.
+ */
+
 import * as THREE from "three";
 import { Person } from "../types/family";
 
@@ -6,10 +18,10 @@ export function createNodes(
   familyData: Person[]
 ): THREE.Mesh[] {
   const points: THREE.Mesh[] = [];
-
   const sphereGeo = new THREE.SphereGeometry(0.6, 16, 16);
   const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x007bff });
 
+  // Espacements pour le layout
   const spacingX = 8;
   const spacingY = 6;
   const spacingZ = 5;
@@ -19,22 +31,27 @@ export function createNodes(
     const sphere = new THREE.Mesh(sphereGeo, sphereMat);
 
     const gen = typeof person.generation === "number" ? person.generation : 0;
+
+    // Trouver toutes les personnes de la même génération
     const sameGen = familyData.filter((p) => p.generation === gen);
-    // findIndex by id is robust
+
+    // Position dans la génération (basée sur l'ID pour stabilité)
     const posInGen = sameGen.findIndex((p) => p.id === person.id);
-    // fallback if not found
     const safePosInGen = posInGen >= 0 ? posInGen : index;
 
+    // Calcul de position 3D
     const x = (safePosInGen - sameGen.length / 2) * spacingX;
     const y = -gen * spacingY;
     const z = (index % 2 === 0 ? 1 : -1) * spacingZ;
 
     sphere.position.set(x, y, z);
 
-    // IMPORTANT: set userData on the mesh (not on geometry)
+    // IMPORTANT : stockage des données dans userData
+    // Utilisé par handleHover et handleClick
     sphere.userData = {
       id: person.id,
-      name: person.name,
+      firstName: person.firstName,
+      lastName: person.lastName,
       generation: person.generation,
       relations: person.relations,
     };
