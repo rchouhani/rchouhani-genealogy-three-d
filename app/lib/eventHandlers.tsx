@@ -48,7 +48,7 @@ export function handleHover(
   // Création du tooltip
   const tooltip = document.createElement("div");
   tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(0,0,0,0.7)";
+  tooltip.style.background = "rgba(255, 0, 255, 0.7)";
   tooltip.style.color = "white";
   tooltip.style.padding = "4px 8px";
   tooltip.style.borderRadius = "4px";

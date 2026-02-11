@@ -98,6 +98,7 @@ function getInverseRelationType(
 export default function Page() {
   /** Source de vérité unique pour tous les membres de la famille. */
   const [familyData, setFamilyData] = useState<Person[]>(createFamilyData);
+  console.log("familyData dans page.tsx:", familyData);
 
   /** Personne actuellement sélectionnée dans la scène 3D. */
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
@@ -197,7 +198,7 @@ export default function Page() {
       {!isCreating && (
         <button
           onClick={handleCreatePerson}
-          className="absolute bottom-24 right-6 z-20 bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700 text-xl flex items-center justify-center"
+          className="absolute bottom-45 right-10 z-20 bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700 text-xl flex items-center justify-center"
         >
           +
         </button>

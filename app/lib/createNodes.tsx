@@ -18,7 +18,7 @@ export function createNodes(
   familyData: Person[]
 ): THREE.Mesh[] {
   const points: THREE.Mesh[] = [];
-  const sphereGeo = new THREE.SphereGeometry(0.6, 16, 16);
+  const sphereGeo = new THREE.SphereGeometry(1, 16, 16);
   const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x007bff });
 
   // Espacements pour le layout
@@ -59,6 +59,12 @@ export function createNodes(
     scene.add(sphere);
     points.push(sphere);
   });
+
+  console.log("createNodes a créé", points.length, "points");
+  console.log(
+    "Positions des points:",
+    points.map((p) => ({ id: p.userData.id, pos: p.position }))
+  );
 
   return points;
 }

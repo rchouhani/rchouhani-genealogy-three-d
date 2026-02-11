@@ -70,11 +70,23 @@ export default function TreeScene({
       setup.controls
     );
 
+    // === BOUCLE D'ANIMATION ===
+    const animate = () => {
+      requestAnimationFrame(animate);
+      setup.controls.update();
+      setup.renderer.render(setup.scene, setup.camera);
+    };
+    animate();
+    // === FIN BOUCLE ===
+
     return () => {
       cleanupResize();
       cleanupResetKey();
       setup.renderer.dispose();
-      if (mountRef.current && setup.renderer.domElement.parentNode === mountRef.current) {
+      if (
+        mountRef.current &&
+        setup.renderer.domElement.parentNode === mountRef.current
+      ) {
         mountRef.current.removeChild(setup.renderer.domElement);
       }
       sceneRef.current = null;
@@ -85,6 +97,7 @@ export default function TreeScene({
   // Recréation des points et liens à chaque changement de familyData
   // ---------------------------------------------------------------------------
   useEffect(() => {
+    console.log("TreeScene reçoit familyData:", familyData);
     const setup = sceneRef.current;
     if (!setup) return;
 
@@ -95,6 +108,7 @@ export default function TreeScene({
     // 2. Créer les nouveaux points et liens
     const newPoints = createNodes(setup.scene, familyData);
     const newLines = createLinks(setup.scene, familyData, newPoints);
+    console.log("Points créés:", newPoints.length);
 
     pointsRef.current = newPoints;
     linesRef.current = newLines;
@@ -153,7 +167,11 @@ export default function TreeScene({
 
   const handleResetClick = () => {
     if (!sceneRef.current) return;
-    resetView(sceneRef.current.camera, sceneRef.current.controls, linesRef.current);
+    resetView(
+      sceneRef.current.camera,
+      sceneRef.current.controls,
+      linesRef.current
+    );
   };
 
   // ---------------------------------------------------------------------------
