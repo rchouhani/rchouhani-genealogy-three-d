@@ -9,85 +9,90 @@ interface SearchEngineProps {
   onCreatePerson: () => void;
 }
 
+/**
+ * Moteur de recherche de personnes dans l'arbre.
+ *
+ * Affiché uniquement si persons.length >= 10 (géré dans page.tsx).
+ *
+ * Comportement :
+ *   - Filtre sur prénom + nom (insensible à la casse).
+ *   - Sélectionner un résultat → callback onSelectPerson.
+ *   - Bouton "+" → ouvre le formulaire d'ajout.
+ *   - Message d'erreur si aucun résultat.
+ */
 export default function SearchEngine({
   persons,
   onSelectPerson,
   onCreatePerson,
 }: SearchEngineProps) {
   const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
 
-  const results = persons.filter((p) => {
-    const full = `${p.firstName} ${p.lastName}`.toLowerCase();
-    return full.includes(query.toLowerCase());
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (value.trim().length === 0) {
-      setError("");
-      return;
-    }
-
-    if (results.length === 0) {
-      setError("Aucun résultat trouvé.");
-    } else {
-      setError("");
-    }
-  };
+  /**
+   * Filtre les personnes dont le prénom + nom contient la requête.
+   * Recalculé à chaque rendu (pas de memo nécessaire à cette taille).
+   */
+  const results = query.trim().length > 0
+    ? persons.filter((p) => {
+        const full = `${p.firstName} ${p.lastName}`.toLowerCase();
+        return full.includes(query.toLowerCase());
+      })
+    : [];
 
   const handleSelect = (person: Person) => {
     setQuery("");
-    setError("");
     onSelectPerson(person);
   };
 
-  const showCreateButton = persons.length === 0 || persons.length < 20;
-
   return (
-    <div className="w-full max-w-md mx-auto p-4 bg-white rounded shadow-lg">
-      <div className="flex items-center gap-3 mb-2">
+    <div className="w-full max-w-md mx-auto">
+      {/* Barre de recherche */}
+      <div className="flex items-center gap-2">
         <input
           type="text"
-          className="w-full p-2 border rounded text-gray-500"
+          className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white/90
+                     text-gray-800 placeholder-gray-400 shadow-md
+                     focus:outline-none focus:ring-2 focus:ring-blue-400"
           placeholder="Rechercher une personne…"
           value={query}
-          onChange={handleChange}
+          onChange={(e) => setQuery(e.target.value)}
+          autoComplete="off"
         />
-
-        {showCreateButton && (
-          <button
-            onClick={onCreatePerson}
-            className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            +
-          </button>
-        )}
+        <button
+          onClick={onCreatePerson}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg
+                     hover:bg-blue-700 shadow-md flex-shrink-0"
+          title="Ajouter une personne"
+        >
+          +
+        </button>
       </div>
 
-      {/* Message d’erreur */}
-      {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-
       {/* Résultats */}
-      {query.length > 0 && results.length > 0 && (
-        <ul className="border rounded bg-gray-50 max-h-60 overflow-y-auto">
+      {results.length > 0 && (
+        <ul className="mt-1 border border-gray-200 rounded-lg bg-white/95
+                       shadow-lg max-h-60 overflow-y-auto">
           {results.map((person) => (
             <li
               key={person.id}
               onClick={() => handleSelect(person)}
-              className="p-2 cursor-pointer hover:bg-gray-200"
+              className="px-4 py-2 cursor-pointer hover:bg-blue-50
+                         text-gray-800 border-b border-gray-100 last:border-0"
             >
-              {person.firstName} {person.lastName}
+              <span className="font-medium">{person.firstName}</span>{" "}
+              {person.lastName}
+              <span className="text-xs text-gray-400 ml-2">
+                Gén. {person.generation}
+              </span>
             </li>
           ))}
         </ul>
       )}
 
       {/* Aucun résultat */}
-      {query.length > 0 && results.length === 0 && !error && (
-        <p className="text-gray-600 text-sm">Aucun résultat.</p>
+      {query.trim().length > 0 && results.length === 0 && (
+        <p className="mt-2 text-sm text-gray-300 text-center">
+          Aucun résultat pour « {query} »
+        </p>
       )}
     </div>
   );

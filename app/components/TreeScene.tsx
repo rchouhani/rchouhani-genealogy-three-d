@@ -22,17 +22,24 @@ interface TreeSceneProps {
   onSelectPerson: (person: Person) => void;
 }
 
+/** Distance de la caméra au point lors du focus. */
+const FOCUS_DISTANCE = 20;
+
+/** Vitesse d'interpolation de la caméra (0-1, plus proche de 1 = plus rapide). */
+const LERP_SPEED = 0.08;
+
 /**
  * Composant responsable UNIQUEMENT du rendu 3D.
  *
  * Responsabilités :
  *   - Initialiser la scène Three.js une seule fois (mount).
  *   - Recréer les points, liens et hitboxes quand familyData change.
+ *   - Centrer la caméra sur selectedPerson quand elle change.
  *   - Gérer les interactions visuelles (hover, click, zoom, freeze, reset).
  *   - Nettoyer proprement à l'unmount.
  *
  * Freeze :
- *   - isFrozenRef  : ref booléen lu dans handleClick (pas de re-render).
+ *   - isFrozenRef   : ref booléen lu dans handleClick (pas de re-render).
  *   - isFrozenState : state booléen pour le rendu visuel du bouton.
  *   - controls.enabled : bloque zoom + pan + rotation d'OrbitControls.
  *   - handleHover : non affecté par le freeze (toujours actif).
@@ -52,10 +59,15 @@ export default function TreeScene({
   const cleanupClickRef = useRef<(() => void) | null>(null);
 
   /**
-   * isFrozenRef : lu dans handleClick à chaque event, sans re-render.
-   * isFrozenState : déclenche le re-render pour mettre à jour le bouton.
-   * Les deux sont toujours synchronisés via handleFreeze.
+   * Cible de l'animation caméra.
+   * null = pas d'animation en cours.
+   * Mis à jour par le useEffect sur selectedPerson.
    */
+  const cameraTargetRef = useRef<{
+    position: THREE.Vector3;
+    lookAt: THREE.Vector3;
+  } | null>(null);
+
   const isFrozenRef = useRef<boolean>(false);
   const [isFrozenState, setIsFrozenState] = useState(false);
 
@@ -75,9 +87,28 @@ export default function TreeScene({
       setup.controls
     );
 
-    // Boucle d'animation
+    // Boucle d'animation — gère aussi l'interpolation caméra
     const animate = () => {
       requestAnimationFrame(animate);
+
+      // Animation lerp vers la cible si active
+      if (cameraTargetRef.current) {
+        const { position, lookAt } = cameraTargetRef.current;
+
+        setup.camera.position.lerp(position, LERP_SPEED);
+        setup.controls.target.lerp(lookAt, LERP_SPEED);
+
+        // Arrêter l'animation quand on est assez proche
+        const distPos = setup.camera.position.distanceTo(position);
+        const distLook = setup.controls.target.distanceTo(lookAt);
+
+        if (distPos < 0.1 && distLook < 0.1) {
+          setup.camera.position.copy(position);
+          setup.controls.target.copy(lookAt);
+          cameraTargetRef.current = null;
+        }
+      }
+
       setup.controls.update();
       setup.renderer.render(setup.scene, setup.camera);
     };
@@ -104,12 +135,10 @@ export default function TreeScene({
     const setup = sceneRef.current;
     if (!setup) return;
 
-    // Supprimer les anciens objets
     pointsRef.current.forEach((mesh) => setup.scene.remove(mesh));
     linesRef.current.forEach((l) => setup.scene.remove(l.line));
     hitboxesRef.current.forEach((h) => setup.scene.remove(h.mesh));
 
-    // Créer les nouveaux objets
     const newPoints = createNodes(setup.scene, familyData);
     const { lines: newLines, hitboxes: newHitboxes } = createLinks(
       setup.scene,
@@ -125,6 +154,38 @@ export default function TreeScene({
   }, [familyData]);
 
   // ---------------------------------------------------------------------------
+  // Focus caméra sur selectedPerson
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Quand selectedPerson change, cherche le mesh correspondant
+   * et déclenche une animation lerp de la caméra vers ce point.
+   *
+   * N'agit pas si selectedPerson est null (reset ou déselection).
+   */
+  useEffect(() => {
+    if (!selectedPerson || !sceneRef.current) return;
+
+    const mesh = pointsRef.current.find(
+      (p) => p.userData.id === selectedPerson.id
+    );
+
+    if (!mesh) return;
+
+    const targetPos = mesh.position.clone();
+
+    // La caméra se positionne devant le point, à FOCUS_DISTANCE de distance
+    cameraTargetRef.current = {
+      position: new THREE.Vector3(
+        targetPos.x,
+        targetPos.y,
+        targetPos.z + FOCUS_DISTANCE
+      ),
+      lookAt: targetPos,
+    };
+  }, [selectedPerson]);
+
+  // ---------------------------------------------------------------------------
   // Listeners d'interaction
   // ---------------------------------------------------------------------------
 
@@ -135,7 +196,6 @@ export default function TreeScene({
     if (cleanupHoverRef.current) cleanupHoverRef.current();
     if (cleanupClickRef.current) cleanupClickRef.current();
 
-    // Hover : toujours actif, même en freeze
     cleanupHoverRef.current = handleHover(
       setup.renderer,
       setup.camera,
@@ -143,7 +203,6 @@ export default function TreeScene({
       hitboxesRef.current
     );
 
-    // Click : bloqué si isFrozenRef.current === true
     cleanupClickRef.current = handleClick(
       setup.renderer,
       setup.camera,
@@ -169,15 +228,8 @@ export default function TreeScene({
     sceneRef.current.camera.position.z += 5;
   };
 
-  /**
-   * Toggle le freeze.
-   * - Met à jour isFrozenRef (lu par handleClick sans re-render).
-   * - Met à jour isFrozenState (re-render pour le bouton).
-   * - Active/désactive OrbitControls.
-   */
   const handleFreeze = () => {
     if (!sceneRef.current) return;
-
     const newFrozen = !isFrozenRef.current;
     isFrozenRef.current = newFrozen;
     setIsFrozenState(newFrozen);
@@ -185,17 +237,19 @@ export default function TreeScene({
   };
 
   /**
-   * Reset : sort du freeze + réinitialise la vue + masque les liens.
+   * Reset : sort du freeze + annule animation caméra + réinitialise la vue.
    */
   const handleResetClick = () => {
     if (!sceneRef.current) return;
 
-    // Sortir du freeze si actif
     if (isFrozenRef.current) {
       isFrozenRef.current = false;
       setIsFrozenState(false);
       sceneRef.current.controls.enabled = true;
     }
+
+    // Annuler toute animation de caméra en cours
+    cameraTargetRef.current = null;
 
     resetView(sceneRef.current.camera, sceneRef.current.controls, linesRef.current);
   };
