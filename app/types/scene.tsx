@@ -40,8 +40,8 @@ export interface SceneSetup {
  * parce qu'un trait peut aussi représenter un conjoint ou un sibling.
  */
 export interface LineObject {
-  sourceId: number;
-  targetId: number;
+  sourceId: string;
+  targetId: string;
   line: THREE.Line;
   type: "parent" | "child" | "sibling" | "spouse";
 }
@@ -65,8 +65,8 @@ export interface LineObject {
  */
 export interface HitboxObject {
   mesh: THREE.Mesh;
-  sourceId: number;
-  targetId: number;
+  sourceId: string;
+  targetId: string;
   type: "parent" | "child" | "sibling" | "spouse";
 }
 

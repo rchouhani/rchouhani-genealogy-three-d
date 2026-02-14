@@ -16,7 +16,7 @@ import { LineObject } from "../types/scene";
 import { Person } from "../types/family";
 
 export default function showConnections(
-  startId: number,
+  startId: string,
   lines: LineObject[],
   familyData: Person[]
 ) {

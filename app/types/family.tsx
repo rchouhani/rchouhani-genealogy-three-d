@@ -31,7 +31,7 @@ export type StoredRelationType = "parent" | "child" | "sibling" | "spouse";
  *           ça signifie "B est l'enfant de A".
  */
 export interface Relation {
-  targetId: number;
+  targetId: string;
   type: StoredRelationType;
 }
 
@@ -61,7 +61,7 @@ export interface Relation {
  * @property photoUrl       - URL vers la photo hébergée externement.
  */
 export interface Person {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   generation: number;
