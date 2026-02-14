@@ -84,10 +84,15 @@ export interface CreateLinksResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Props du panneau de contrôles (zoom, reset).
+ * Props du panneau de contrôles (zoom, freeze, reset).
+ *
+ * @property onFreeze - Toggle le freeze de la scène.
+ * @property isFrozen - État actuel du freeze (pour l'affichage du bouton).
  */
 export interface ControlsPanelProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onFreeze: () => void;
   onReset: () => void;
+  isFrozen: boolean;
 }

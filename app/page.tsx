@@ -198,7 +198,7 @@ export default function Page() {
       {!isCreating && (
         <button
           onClick={handleCreatePerson}
-          className="absolute bottom-45 right-10 z-20 bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700 text-xl flex items-center justify-center"
+          className="absolute bottom-55 right-10 z-20 bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700 text-xl flex items-center justify-center"
         >
           +
         </button>

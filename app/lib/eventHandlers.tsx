@@ -1,3 +1,4 @@
+import React from "react";
 /**
  * @fileoverview Gestion des événements d'interaction avec la scène 3D.
  *
@@ -164,9 +165,13 @@ export function handleClick(
   points: THREE.Mesh[],
   lines: LineObject[],
   familyData: Person[],
-  onSelectPerson: (person: Person, mesh: THREE.Mesh) => void
+  onSelectPerson: (person: Person, mesh: THREE.Mesh) => void,
+  isFrozenRef: React.RefObject<boolean>
 ) {
   const onClick = (event: MouseEvent) => {
+    // Interactions désactivées si la scène est figée
+    if (isFrozenRef.current) return;
+
     const rect = renderer.domElement.getBoundingClientRect();
 
     // Même normalisation que handleHover
