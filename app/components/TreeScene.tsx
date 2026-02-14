@@ -14,7 +14,7 @@ import {
 } from "../lib/eventHandlers";
 import ControlsPanel from "./ControlsPanel";
 import { Person } from "../types/family";
-import { SceneSetup, LineObject } from "../types/scene";
+import { SceneSetup, LineObject, HitboxObject } from "../types/scene";
 
 interface TreeSceneProps {
   familyData: Person[];
@@ -27,18 +27,9 @@ interface TreeSceneProps {
  *
  * Responsabilités :
  *   - Initialiser la scène Three.js une seule fois (mount).
- *   - Recréer les points et liens chaque fois que familyData change.
+ *   - Recréer les points, liens et hitboxes quand familyData change.
  *   - Gérer les interactions visuelles (hover, click, zoom, reset).
  *   - Nettoyer proprement à l'unmount.
- *
- * Ce qui n'est PAS fait ici :
- *   - Créer ou modifier des données (Person, Relation).
- *   - Générer des IDs.
- *   - Gérer l'état métier.
- *
- * @param familyData      - Liste des membres (source de vérité, vient de page.tsx).
- * @param selectedPerson  - Personne actuellement sélectionnée.
- * @param onSelectPerson  - Callback quand une personne est cliquée dans la scène.
  */
 export default function TreeScene({
   familyData,
@@ -49,13 +40,13 @@ export default function TreeScene({
   const sceneRef = useRef<SceneSetup | null>(null);
   const pointsRef = useRef<THREE.Mesh[]>([]);
   const linesRef = useRef<LineObject[]>([]);
+  const hitboxesRef = useRef<HitboxObject[]>([]);
 
-  /** Stocker les cleanup de hover et click séparément pour les recréer sans toucher aux autres listeners. */
   const cleanupHoverRef = useRef<(() => void) | null>(null);
   const cleanupClickRef = useRef<(() => void) | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Initialisation de la scène — UNE SEULE FOIS à la mise en place du composant
+  // Initialisation de la scène — UNE SEULE FOIS
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!mountRef.current) return;
@@ -70,14 +61,13 @@ export default function TreeScene({
       setup.controls
     );
 
-    // === BOUCLE D'ANIMATION ===
+    // Boucle d'animation
     const animate = () => {
       requestAnimationFrame(animate);
       setup.controls.update();
       setup.renderer.render(setup.scene, setup.camera);
     };
     animate();
-    // === FIN BOUCLE ===
 
     return () => {
       cleanupResize();
@@ -94,51 +84,53 @@ export default function TreeScene({
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Recréation des points et liens à chaque changement de familyData
+  // Recréation des points, liens et hitboxes à chaque changement de familyData
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    console.log("TreeScene reçoit familyData:", familyData);
     const setup = sceneRef.current;
     if (!setup) return;
 
-    // 1. Supprimer les anciens points et liens de la scène
+    // 1. Supprimer les anciens objets de la scène
     pointsRef.current.forEach((mesh) => setup.scene.remove(mesh));
     linesRef.current.forEach((l) => setup.scene.remove(l.line));
+    hitboxesRef.current.forEach((h) => setup.scene.remove(h.mesh));
 
-    // 2. Créer les nouveaux points et liens
+    // 2. Créer les nouveaux objets
     const newPoints = createNodes(setup.scene, familyData);
-    const newLines = createLinks(setup.scene, familyData, newPoints);
-    console.log("Points créés:", newPoints.length);
+    const { lines: newLines, hitboxes: newHitboxes } = createLinks(
+      setup.scene,
+      familyData,
+      newPoints
+    );
 
     pointsRef.current = newPoints;
     linesRef.current = newLines;
+    hitboxesRef.current = newHitboxes;
 
-    // 3. Recréer les listeners hover et click avec les nouveaux points
+    // 3. Recréer les listeners avec les nouveaux objets
     rebuildInteractionListeners();
   }, [familyData]);
 
   // ---------------------------------------------------------------------------
-  // Recréation des listeners d'interaction (hover + click)
+  // Listeners d'interaction
   // ---------------------------------------------------------------------------
 
   /**
-   * Supprime les anciens listeners hover/click puis en crée de nouveaux.
-   * Appelé à chaque fois que les points changent.
-   * Aucun autre listener n'est touché (resize, keydown restent stables).
+   * Supprime les anciens listeners hover/click et en crée de nouveaux.
+   * Appelé à chaque changement de familyData.
    */
   const rebuildInteractionListeners = useCallback(() => {
     const setup = sceneRef.current;
     if (!setup) return;
 
-    // Cleanup des précédents
     if (cleanupHoverRef.current) cleanupHoverRef.current();
     if (cleanupClickRef.current) cleanupClickRef.current();
 
-    // Nouveaux listeners
     cleanupHoverRef.current = handleHover(
       setup.renderer,
       setup.camera,
-      pointsRef.current
+      pointsRef.current,
+      hitboxesRef.current
     );
 
     cleanupClickRef.current = handleClick(
@@ -152,7 +144,7 @@ export default function TreeScene({
   }, [familyData, onSelectPerson]);
 
   // ---------------------------------------------------------------------------
-  // Contrôles manuels (zoom, reset)
+  // Contrôles
   // ---------------------------------------------------------------------------
 
   const handleZoomIn = () => {

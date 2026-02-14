@@ -47,6 +47,39 @@ export interface LineObject {
 }
 
 // ---------------------------------------------------------------------------
+// Hitbox (cylindre invisible pour la détection hover sur les traits)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cylindre invisible positionné sur un trait pour permettre
+ * la détection au survol via le raycaster.
+ *
+ * Pourquoi : THREE.Line n'est pas fiablement détecté par intersectObjects().
+ * Solution : un CylinderGeometry transparent, légèrement plus large que
+ * le trait, sert de zone de détection.
+ *
+ * @property mesh      - Le cylindre Three.js invisible.
+ * @property sourceId  - ID de la personne source.
+ * @property targetId  - ID de la personne cible.
+ * @property type      - Type de relation (pour le tooltip).
+ */
+export interface HitboxObject {
+  mesh: THREE.Mesh;
+  sourceId: number;
+  targetId: number;
+  type: "parent" | "child" | "sibling" | "spouse";
+}
+
+/**
+ * Résultat retourné par createLinks.
+ * Sépare clairement les objets visuels (lines) des objets d'interaction (hitboxes).
+ */
+export interface CreateLinksResult {
+  lines: LineObject[];
+  hitboxes: HitboxObject[];
+}
+
+// ---------------------------------------------------------------------------
 // Props des composants UI liés à la scène
 // ---------------------------------------------------------------------------
 

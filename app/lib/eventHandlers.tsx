@@ -1,96 +1,141 @@
 /**
  * @fileoverview Gestion des événements d'interaction avec la scène 3D.
  *
- * Ce fichier contient tous les handlers d'événements pour :
- *   - Hover sur les points (affichage tooltip)
- *   - Click sur les points (sélection + affichage connexions)
- *   - Reset de la vue (bouton + touche "r")
- *   - Resize de la fenêtre
+ * Ce fichier gère :
+ *   - Hover sur les points    → tooltip prénom + nom
+ *   - Hover sur les traits    → tooltip type de relation (via hitboxes cylindriques)
+ *   - Click sur les points    → sélection + affichage connexions BFS
+ *   - Reset de la vue         → bouton + touche "r"
+ *   - Resize de la fenêtre    → mise à jour caméra + renderer
  *
- * Règles strictes :
- *   - Normalisation identique pour hover et click (getBoundingClientRect).
- *   - Tous les listeners sur renderer.domElement (sauf resize et keydown sur window).
- *   - Cleanup systématique retourné.
- *   - Une seule instance de raycaster et mouse (module scope).
+ * Règles :
+ *   - Normalisation identique hover/click via getBoundingClientRect().
+ *   - Tous les listeners d'interaction sur renderer.domElement.
+ *   - Cleanup systématiquement retourné.
  */
 
 import * as THREE from "three";
-import { LineObject } from "../types/scene";
+import { LineObject, HitboxObject } from "../types/scene";
 import { Person } from "../types/family";
 import showConnections from "./bfs";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-// Raycaster et vecteur mouse partagés (module scope)
-// Évite de recréer ces objets à chaque frame
+// Partagés en module scope — créés une seule fois
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+/**
+ * Labels lisibles pour les types de relation.
+ * Utilisé dans le tooltip au hover sur les traits.
+ */
+const RELATION_LABELS: Record<string, string> = {
+  parent: "Parent",
+  child: "Enfant",
+  sibling: "Frère / Sœur",
+  spouse: "Conjoint(e)",
+};
+
+// ---------------------------------------------------------------------------
+// Utilitaire : création du tooltip DOM
+// ---------------------------------------------------------------------------
+
+/**
+ * Crée et attache un tooltip invisible au body.
+ * Retourne une fonction pour le supprimer du DOM.
+ */
+function createTooltip(): HTMLDivElement {
+  const tooltip = document.createElement("div");
+  tooltip.style.position = "absolute";
+  tooltip.style.background = "rgba(0,0,0,0.75)";
+  tooltip.style.color = "white";
+  tooltip.style.padding = "4px 10px";
+  tooltip.style.borderRadius = "4px";
+  tooltip.style.pointerEvents = "none";
+  tooltip.style.display = "none";
+  tooltip.style.zIndex = "1000";
+  tooltip.style.whiteSpace = "nowrap";
+  tooltip.style.fontSize = "13px";
+  document.body.appendChild(tooltip);
+  return tooltip;
+}
 
 // ---------------------------------------------------------------------------
 // HOVER
 // ---------------------------------------------------------------------------
 
 /**
- * Gère l'affichage d'un tooltip au survol des points.
+ * Gère le tooltip au survol des points ET des traits.
  *
- * Le tooltip affiche le prénom + nom de la personne.
- * Il suit le curseur et disparaît quand on quitte le point.
+ * Priorité de détection :
+ *   1. Points (personnes) → affiche prénom + nom
+ *   2. Hitboxes (traits)  → affiche le type de relation
  *
- * @param renderer - Renderer Three.js (pour écouter sur son domElement).
- * @param camera   - Caméra utilisée pour le raycasting.
- * @param points   - Liste des meshes (points) à tester.
- * @returns Fonction de cleanup (removeEventListener + removeChild du tooltip).
+ * @param renderer  - Renderer Three.js.
+ * @param camera    - Caméra pour le raycasting.
+ * @param points    - Meshes des personnes.
+ * @param hitboxes  - Cylindres invisibles sur les traits.
+ * @returns Cleanup (removeEventListener + removeChild tooltip).
  */
 export function handleHover(
   renderer: THREE.WebGLRenderer,
   camera: THREE.Camera,
-  points: THREE.Mesh[]
+  points: THREE.Mesh[],
+  hitboxes: HitboxObject[]
 ) {
-  // Création du tooltip
-  const tooltip = document.createElement("div");
-  tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(255, 0, 255, 0.7)";
-  tooltip.style.color = "white";
-  tooltip.style.padding = "4px 8px";
-  tooltip.style.borderRadius = "4px";
-  tooltip.style.pointerEvents = "none";
-  tooltip.style.display = "none";
-  tooltip.style.zIndex = "1000";
-  tooltip.style.whiteSpace = "nowrap";
-  document.body.appendChild(tooltip);
+  const tooltip = createTooltip();
+  const hitboxMeshes = hitboxes.map((h) => h.mesh);
 
   const onMouseMove = (event: MouseEvent) => {
     const rect = renderer.domElement.getBoundingClientRect();
 
-    // Normalisation en tenant compte du canvas (pas de window.innerWidth)
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(points);
 
-    if (intersects.length > 0) {
-      const intersected = intersects[0].object;
+    // --- Priorité 1 : survol d'un point (personne) ---
+    const pointIntersects = raycaster.intersectObjects(points);
+
+    if (pointIntersects.length > 0) {
+      const obj = pointIntersects[0].object;
       document.body.style.cursor = "pointer";
-
       tooltip.style.display = "block";
-      tooltip.textContent = intersected.userData?.firstName
-        ? `${intersected.userData.firstName} ${intersected.userData.lastName}`
+      tooltip.textContent = obj.userData?.firstName
+        ? `${obj.userData.firstName} ${obj.userData.lastName}`
         : "Inconnu";
-
-      // Position du tooltip
-      tooltip.style.left = `${event.clientX + 10}px`;
-      tooltip.style.top = `${event.clientY + 10}px`;
-    } else {
-      document.body.style.cursor = "default";
-      tooltip.style.display = "none";
+      tooltip.style.left = `${event.clientX + 12}px`;
+      tooltip.style.top = `${event.clientY + 12}px`;
+      return;
     }
+
+    // --- Priorité 2 : survol d'une hitbox (trait) ---
+    const hitboxIntersects = raycaster.intersectObjects(hitboxMeshes);
+
+    if (hitboxIntersects.length > 0) {
+      const obj = hitboxIntersects[0].object;
+      const relType = obj.userData?.type as string | undefined;
+      const label = relType
+        ? RELATION_LABELS[relType] ?? relType
+        : "Relation";
+
+      document.body.style.cursor = "default";
+      tooltip.style.display = "block";
+      tooltip.textContent = label;
+      tooltip.style.left = `${event.clientX + 12}px`;
+      tooltip.style.top = `${event.clientY + 12}px`;
+      return;
+    }
+
+    // --- Aucune intersection ---
+    document.body.style.cursor = "default";
+    tooltip.style.display = "none";
   };
 
   renderer.domElement.addEventListener("mousemove", onMouseMove);
 
   return () => {
     renderer.domElement.removeEventListener("mousemove", onMouseMove);
-    document.body.removeChild(tooltip);
+    if (tooltip.parentNode) document.body.removeChild(tooltip);
   };
 }
 
@@ -101,17 +146,17 @@ export function handleHover(
 /**
  * Gère le click sur les points.
  *
- * Quand un point est cliqué :
- *   1. La personne correspondante est sélectionnée (callback onSelectPerson).
- *   2. Les connexions liées à cette personne sont affichées via BFS.
+ * Au click :
+ *   1. La personne est sélectionnée via onSelectPerson.
+ *   2. Les connexions BFS sont affichées.
  *
- * @param renderer       - Renderer Three.js (pour écouter sur son domElement).
- * @param camera         - Caméra utilisée pour le raycasting.
- * @param points         - Liste des meshes (points) à tester.
- * @param lines          - Liste des lignes à afficher/cacher.
- * @param familyData     - Données des personnes (pour BFS et lookup).
- * @param onSelectPerson - Callback appelé quand une personne est sélectionnée.
- * @returns Fonction de cleanup (removeEventListener).
+ * @param renderer       - Renderer Three.js.
+ * @param camera         - Caméra pour le raycasting.
+ * @param points         - Meshes des personnes.
+ * @param lines          - Traits (pour BFS).
+ * @param familyData     - Données des personnes.
+ * @param onSelectPerson - Callback de sélection.
+ * @returns Cleanup (removeEventListener).
  */
 export function handleClick(
   renderer: THREE.WebGLRenderer,
@@ -124,7 +169,7 @@ export function handleClick(
   const onClick = (event: MouseEvent) => {
     const rect = renderer.domElement.getBoundingClientRect();
 
-    // IMPORTANT : même normalisation que handleHover
+    // Même normalisation que handleHover
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -139,14 +184,10 @@ export function handleClick(
 
     if (!person) return;
 
-    // Callback vers TreeScene → page.tsx
     onSelectPerson(person, mesh);
-
-    // Affichage des connexions
     showConnections(clickedId, lines, familyData);
   };
 
-  // IMPORTANT : écoute sur renderer.domElement (pas window)
   renderer.domElement.addEventListener("click", onClick);
 
   return () => {
@@ -159,13 +200,11 @@ export function handleClick(
 // ---------------------------------------------------------------------------
 
 /**
- * Réinitialise la vue de la caméra et masque toutes les lignes.
+ * Réinitialise la vue et masque tous les traits.
  *
- * Appelé par le bouton Reset ou la touche "r".
- *
- * @param camera  - Caméra à réinitialiser.
+ * @param camera   - Caméra à réinitialiser.
  * @param controls - OrbitControls à réinitialiser.
- * @param lines    - Liste des lignes à masquer (optionnel).
+ * @param lines    - Traits à masquer (optionnel).
  */
 export function resetView(
   camera: THREE.PerspectiveCamera,
@@ -185,12 +224,12 @@ export function resetView(
 }
 
 /**
- * Attache un listener sur la touche "r" pour reset.
+ * Touche "r" pour reset.
  *
  * @param camera   - Caméra à réinitialiser.
- * @param getLines - Fonction qui retourne la liste actuelle des lignes.
+ * @param getLines - Fonction retournant les lignes actuelles (pattern ref).
  * @param controls - OrbitControls à réinitialiser.
- * @returns Fonction de cleanup (removeEventListener).
+ * @returns Cleanup (removeEventListener).
  */
 export function attachResetKeyListener(
   camera: THREE.PerspectiveCamera,
@@ -199,8 +238,7 @@ export function attachResetKeyListener(
 ) {
   const onKeyPress = (event: KeyboardEvent) => {
     if (event.key.toLowerCase() === "r") {
-      const lines = getLines();
-      resetView(camera, controls, lines);
+      resetView(camera, controls, getLines());
     }
   };
 
@@ -213,13 +251,11 @@ export function attachResetKeyListener(
 // ---------------------------------------------------------------------------
 
 /**
- * Gère le redimensionnement de la fenêtre.
- *
- * Met à jour l'aspect de la caméra et la taille du renderer.
+ * Met à jour la caméra et le renderer au redimensionnement.
  *
  * @param camera   - Caméra à mettre à jour.
  * @param renderer - Renderer à redimensionner.
- * @returns Fonction de cleanup (removeEventListener).
+ * @returns Cleanup (removeEventListener).
  */
 export function handleResize(
   camera: THREE.PerspectiveCamera,
@@ -232,8 +268,5 @@ export function handleResize(
   };
 
   window.addEventListener("resize", onResize);
-
-  return () => {
-    window.removeEventListener("resize", onResize);
-  };
+  return () => window.removeEventListener("resize", onResize);
 }
