@@ -209,7 +209,7 @@ export default function Page() {
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-30">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Ajouter un membre</h2>
+              <h2 className="text-lg font-semibold text-gray-600 text-center">Ajouter un membre</h2>
               <button
                 onClick={() => setIsCreating(false)}
                 className="text-gray-400 hover:text-gray-600 text-xl"

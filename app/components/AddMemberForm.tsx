@@ -110,14 +110,8 @@ export default function AddMemberForm({
         required
       />
 
-      {/* Type de relation */}
-      <label className="text-sm text-gray-600 dark:text-gray-300">
-        Type de relation
-      </label>
-      <RelationSelector value={relationType} onChange={setRelationType} />
-
       {/* Personne de référence */}
-      <label className="text-sm text-gray-600 dark:text-gray-300">
+      <label className="text-sm text-gray-600 dark:text-gray-600">
         Personne de référence
       </label>
       <select
@@ -135,6 +129,12 @@ export default function AddMemberForm({
           </option>
         ))}
       </select>
+
+            {/* Type de relation */}
+      <label className="text-sm text-gray-600 dark:text-gray-600">
+        Type de relation
+      </label>
+      <RelationSelector value={relationType} onChange={setRelationType} />
 
       {/* Bouton soumission */}
       <button
