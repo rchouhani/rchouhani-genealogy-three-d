@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import TreeScene from "./components/TreeScene";
 import SearchEngine from "./components/SearchEngine";
 import AddMemberForm from "./components/AddMemberForm";
-import { Person } from "./types/family";
+import { Person, StoredRelationType } from "./types/family";
 import { RelationType as GenRelationType } from "./utils/generation";
 import {
   fetchFamilyData,
@@ -106,27 +106,30 @@ export default function Page() {
       await createRelation(created.id, relationTargetId, storedType);
 
       // 3. Construire l'objet Person complet pour l'état local
-      const member: Person = {
-        id: created.id,
-        firstName: created.firstName,
-        lastName: created.lastName,
-        generation: created.generation,
-        relations: [{ targetId: relationTargetId, type: storedType }],
-      };
+const member: Person = {
+  id: created.id,
+  firstName: created.firstName,
+  lastName: created.lastName,
+  generation: created.generation,
+  relations: [{ targetId: relationTargetId, type: storedType as StoredRelationType }],
+};
 
       // 4. Mettre à jour la personne de référence avec la relation inverse
       const inverseType = storedType === "parent" ? "child"
         : storedType === "child" ? "parent"
         : storedType;
 
-      const updatedFamily = familyData.map((p) =>
-        p.id === relationTargetId
-          ? {
-              ...p,
-              relations: [...p.relations, { targetId: created.id, type: inverseType }],
-            }
-          : p
-      );
+const updatedFamily = familyData.map((p) =>
+  p.id === relationTargetId
+    ? {
+        ...p,
+        relations: [
+          ...p.relations,
+          { targetId: created.id, type: inverseType as StoredRelationType },
+        ],
+      }
+    : p
+);
 
       setFamilyData([...updatedFamily, member]);
       setSelectedPerson(member);
