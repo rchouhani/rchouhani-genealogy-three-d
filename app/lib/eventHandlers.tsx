@@ -46,8 +46,8 @@ const RELATION_LABELS: Record<string, string> = {
  */
 function createTooltip(): HTMLDivElement {
   const tooltip = document.createElement("div");
-  tooltip.style.position = "absolute";
-  tooltip.style.background = "rgba(0,0,0,0.75)";
+  tooltip.style.position = "fixed";
+  tooltip.style.background = "rgba(29, 106, 156, 0.75)";
   tooltip.style.color = "white";
   tooltip.style.padding = "4px 10px";
   tooltip.style.borderRadius = "4px";
