@@ -31,7 +31,7 @@ export type StoredRelationType = "parent" | "child" | "sibling" | "spouse";
  *           ça signifie "B est l'enfant de A".
  */
 export interface Relation {
-  targetId: string;
+  targetId: string;  // UUID
   type: StoredRelationType;
 }
 
@@ -46,7 +46,7 @@ export interface Relation {
  * Ils sont volontairement présents maintenant pour éviter de changer
  * le type plus tard et casser les imports.
  *
- * @property id         - Identifiant unique. Sera UUID en base PostgreSQL.
+ * @property id         - UUID PostgreSQL (ex. "a3f2b1c4-..."). Généré par la base.
  * @property firstName  - Prénom.
  * @property lastName   - Nom de famille.
  * @property generation - Génération dans l'arbre (0 = racine). Utilisé pour le layout 3D.
@@ -61,7 +61,7 @@ export interface Relation {
  * @property photoUrl       - URL vers la photo hébergée externement.
  */
 export interface Person {
-  id: string;
+  id: string;  // UUID (ex. "a3f2b1c4-...")
   firstName: string;
   lastName: string;
   generation: number;
