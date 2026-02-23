@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Person } from "../types/family";
-import { RelationType as GenRelationType, computeGeneration } from "../utils/generation";
+import {
+  RelationType as GenRelationType,
+  computeGeneration,
+} from "../utils/generation";
 import RelationSelector from "./RelationSelector";
 
 interface AddMemberFormProps {
@@ -41,6 +44,7 @@ export default function AddMemberForm({
   const [lastName, setLastName] = useState("");
   const [relationType, setRelationType] = useState<GenRelationType>("child");
   const [relationTargetId, setRelationTargetId] = useState<string>("");
+  const [error, setError] = useState("");
 
   /** Premier membre : base actuellement vide. */
   const isFirstMember = familyMembers.length === 0;
@@ -61,8 +65,8 @@ export default function AddMemberForm({
           lastName: lastName.trim(),
           generation: 0,
         },
-        "",         // pas de référence
-        "child"     // ignoré dans page.tsx si relationTargetId est vide
+        "", // pas de référence
+        "child" // ignoré dans page.tsx si relationTargetId est vide
       );
 
       setFirstName("");
@@ -72,15 +76,18 @@ export default function AddMemberForm({
 
     // --- Cas base non vide : relation obligatoire ---
     if (!relationTargetId) {
-      alert("Choisis une personne de référence.");
+      setError("Choisis une personne de référence.");
       return;
     }
+    setError("")
 
     const target = familyMembers.find((m) => m.id === relationTargetId);
     if (!target) {
-      alert("Personne de référence introuvable.");
+      setError("Personne de référence introuvable.");
       return;
     }
+    setError("")
+
 
     const generation = computeGeneration(target.generation, relationType);
 
@@ -102,7 +109,6 @@ export default function AddMemberForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-
       {/* Message contextuel */}
       {isFirstMember && (
         <p className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
@@ -154,6 +160,9 @@ export default function AddMemberForm({
               </option>
             ))}
           </select>
+          {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
         </>
       )}
 
