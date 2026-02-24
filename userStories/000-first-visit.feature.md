@@ -1,5 +1,6 @@
 Feature : Arrivée sur la page d'accueil à la première visite
-Scénario: Arrivée sur le site
+
+   Scénario: Arrivée sur le site
         Given adresse tapé dans la barre du navigateur
         When La page d'accueil s'affiche
         Then Une seule scène 3d s'affiche

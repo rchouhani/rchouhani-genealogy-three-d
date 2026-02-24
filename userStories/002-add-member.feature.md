@@ -9,6 +9,7 @@ Feature: Ajouter un membre à l'arbre généalogique
         Then Un point bleu apparaît sur la scène
         And Le point affiche "Jean Dupont" au hover
 
+
     Scénario: Ajouter un autre membre
         Given "Jean Dupont" existe en base de donnée
         When L'utilsateur clique sur le bouton "+"
