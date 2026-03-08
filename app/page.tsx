@@ -91,54 +91,61 @@ export default function Page() {
    *   2. Crée la relation via POST /api/relations (bidirectionnel géré côté API).
    *   3. Met à jour l'état local sans recharger toute la liste.
    */
-  const handleAddMember = async (
-    newMember: Omit<Person, "id" | "relations">,
-    relationTargetId: string,
-    relationType: GenRelationType
-  ) => {
-    const storedType = mapToStoredRelationType(relationType);
+const handleAddMember = async (
+  newMember: Omit<Person, "id" | "relations">,
+  relationTargetId: string,  // ← STRING, pas tableau
+  relationType: GenRelationType
+) => {
+  const storedType = mapToStoredRelationType(relationType);
+  const isFirstMember = !relationTargetId;  // ← vide = premier membre
 
-    try {
-      // 1. Créer la personne en base
-      const created = await createPerson(newMember);
+  try {
+    // 1. Créer la personne en base
+    const created = await createPerson(newMember);
 
-      // 2. Créer la relation bidirectionnelle
+    // 2. Créer la relation bidirectionnelle (sauf si premier membre)
+    if (!isFirstMember) {
       await createRelation(created.id, relationTargetId, storedType);
-
-      // 3. Construire l'objet Person complet pour l'état local
-const member: Person = {
-  id: created.id,
-  firstName: created.firstName,
-  lastName: created.lastName,
-  generation: created.generation,
-  relations: [{ targetId: relationTargetId, type: storedType as StoredRelationType }],
-};
-
-      // 4. Mettre à jour la personne de référence avec la relation inverse
-      const inverseType = storedType === "parent" ? "child"
-        : storedType === "child" ? "parent"
-        : storedType;
-
-const updatedFamily = familyData.map((p) =>
-  p.id === relationTargetId
-    ? {
-        ...p,
-        relations: [
-          ...p.relations,
-          { targetId: created.id, type: inverseType as StoredRelationType },
-        ],
-      }
-    : p
-);
-
-      setFamilyData([...updatedFamily, member]);
-      setSelectedPerson(member);
-      setIsCreating(false);
-    } catch (err) {
-      console.error("Erreur ajout membre:", err);
-      alert("Erreur lors de l'ajout. Réessaie.");
     }
-  };
+
+    // 3. Construire l'objet Person complet pour l'état local
+    const inverseType = (storedType === "parent" ? "child"
+      : storedType === "child" ? "parent"
+      : storedType) as StoredRelationType;
+
+    const member: Person = {
+      id: created.id,
+      firstName: created.firstName,
+      lastName: created.lastName,
+      generation: created.generation,
+      relations: isFirstMember
+        ? []
+        : [{ targetId: relationTargetId, type: storedType as StoredRelationType }],
+    };
+
+    // 4. Mettre à jour la personne de référence avec la relation inverse
+    const updatedFamily = isFirstMember
+      ? familyData
+      : familyData.map((p) =>
+          p.id === relationTargetId
+            ? {
+                ...p,
+                relations: [
+                  ...p.relations,
+                  { targetId: created.id, type: inverseType },
+                ],
+              }
+            : p
+        );
+
+    setFamilyData([...updatedFamily, member]);
+    setSelectedPerson(member);
+    setIsCreating(false);
+  } catch (err) {
+    console.error("Erreur ajout membre:", err);
+    alert("Erreur lors de l'ajout. Réessaie.");
+  }
+};
 
   // ---------------------------------------------------------------------------
   // Rendu
@@ -168,6 +175,7 @@ const updatedFamily = familyData.map((p) =>
           familyData={familyData}
           selectedPerson={selectedPerson}
           onSelectPerson={setSelectedPerson}
+          onAddMember={handleCreatePerson}
         />
       </div>
 
@@ -182,18 +190,7 @@ const updatedFamily = familyData.map((p) =>
         </div>
       )}
 
-      {/* === Bouton "+" toujours visible === */}
-      {!isCreating && (
-        <button
-          onClick={handleCreatePerson}
-          className="absolute bottom-24 right-6 z-20 bg-blue-600 text-white
-                     w-10 h-10 rounded-full shadow-lg hover:bg-blue-700
-                     text-xl flex items-center justify-center"
-          title="Ajouter un membre"
-        >
-          +
-        </button>
-      )}
+
 
       {/* === Formulaire d'ajout === */}
       {isCreating && (

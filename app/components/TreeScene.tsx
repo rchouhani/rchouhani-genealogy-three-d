@@ -20,6 +20,7 @@ interface TreeSceneProps {
   familyData: Person[];
   selectedPerson: Person | null;
   onSelectPerson: (person: Person) => void;
+  onAddMember: () => void;
 }
 
 const FOCUS_DISTANCE = 20;
@@ -29,6 +30,7 @@ export default function TreeScene({
   familyData,
   selectedPerson,
   onSelectPerson,
+  onAddMember,
 }: TreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneSetup | null>(null);
@@ -120,9 +122,6 @@ export default function TreeScene({
     animate();
 
     return () => {
-      if (cleanupHoverRef.current) cleanupHoverRef.current();
-      if (cleanupClickRef.current) cleanupClickRef.current();
-
       cleanupResize();
       cleanupResetKey();
       setup.renderer.dispose();
@@ -217,11 +216,7 @@ export default function TreeScene({
     }
 
     cameraTargetRef.current = null;
-    resetView(
-      sceneRef.current.camera,
-      sceneRef.current.controls,
-      linesRef.current
-    );
+    resetView(sceneRef.current.camera, sceneRef.current.controls, linesRef.current);
   };
 
   // ---------------------------------------------------------------------------
@@ -236,6 +231,7 @@ export default function TreeScene({
         onZoomOut={handleZoomOut}
         onFreeze={handleFreeze}
         onReset={handleResetClick}
+        onAddMember={onAddMember}
         isFrozen={isFrozenState}
       />
     </>

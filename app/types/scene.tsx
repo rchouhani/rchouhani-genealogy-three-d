@@ -94,5 +94,6 @@ export interface ControlsPanelProps {
   onZoomOut: () => void;
   onFreeze: () => void;
   onReset: () => void;
+  onAddMember: () => void;
   isFrozen: boolean;
 }
