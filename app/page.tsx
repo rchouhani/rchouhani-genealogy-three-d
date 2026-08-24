@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import TreeScene from "./components/TreeScene";
 import SearchEngine from "./components/SearchEngine";
 import AddMemberForm from "./components/AddMemberForm";
-import { Person, StoredRelationType } from "./types/family";
+import FilterPanel from "./components/FilterPanel";
+import { Person } from "./types/family";
+import { RelationFilters } from "./types/scene";
 import { RelationType as GenRelationType } from "./utils/generation";
 import {
   fetchFamilyData,
@@ -13,37 +15,43 @@ import {
 } from "./lib/api";
 
 /**
- * Convertit un RelationType granulaire (UI) en StoredRelationType (base de données).
+ * Retourne le type de relation inverse.
+ * Ex : "mother" → "child", "uncle" → "nephew", etc.
  */
-function mapToStoredRelationType(r: GenRelationType): Person["relations"][number]["type"] {
-  switch (r) {
-    case "child":
-    case "son":
-    case "daughter":
-      return "child";
-    case "parent":
-    case "mother":
-    case "father":
-    case "stepFather":
-    case "stepMother":
-      return "parent";
-    case "spouse":
-    case "husband":
-    case "wife":
-    case "sonInLaw":
-    case "daughterInLaw":
-    case "brotherInLaw":
-    case "sisterInLaw":
-      return "spouse";
-    case "grandChild":
-      return "child";
-    case "grandParent":
-    case "grandFather":
-    case "grandMother":
-      return "parent";
-    default:
-      return "sibling";
-  }
+function getInverseRelationType(type: GenRelationType): GenRelationType {
+  const inverseMap: Partial<Record<GenRelationType, GenRelationType>> = {
+    parent: "child",
+    mother: "child",
+    father: "child",
+    child: "parent",
+    son: "parent",
+    daughter: "parent",
+    sibling: "sibling",
+    brother: "sibling",
+    sister: "sibling",
+    spouse: "spouse",
+    wife: "husband",
+    husband: "wife",
+    uncle: "nephew",
+    aunt: "niece",
+    nephew: "uncle",
+    niece: "aunt",
+    cousin: "cousin",
+    grandParent: "grandChild",
+    grandFather: "grandChild",
+    grandMother: "grandChild",
+    grandChild: "grandParent",
+    stepFather: "child",
+    stepMother: "child",
+    stepBrother: "sibling",
+    stepSister: "sibling",
+    brotherInLaw: "sisterInLaw",
+    sisterInLaw: "brotherInLaw",
+    sonInLaw: "parent",
+    daughterInLaw: "parent",
+  };
+  
+  return inverseMap[type] || type;
 }
 
 export default function Page() {
@@ -55,6 +63,15 @@ export default function Page() {
   /** État de chargement initial. */
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  /** Filtres de relations actifs. */
+  const [activeFilters, setActiveFilters] = useState<RelationFilters>({
+    proches: true,
+    elargie: false,
+    recomposee: false,
+    parAlliance: false,
+    intergenerationnel: false,
+  });
 
   // ---------------------------------------------------------------------------
   // Chargement initial depuis l'API
@@ -91,61 +108,64 @@ export default function Page() {
    *   2. Crée la relation via POST /api/relations (bidirectionnel géré côté API).
    *   3. Met à jour l'état local sans recharger toute la liste.
    */
-const handleAddMember = async (
-  newMember: Omit<Person, "id" | "relations">,
-  relationTargetId: string,  // ← STRING, pas tableau
-  relationType: GenRelationType
-) => {
-  const storedType = mapToStoredRelationType(relationType);
-  const isFirstMember = !relationTargetId;  // ← vide = premier membre
+  const handleAddMember = async (
+    newMember: Omit<Person, "id" | "relations">,
+    relationTargetId: string,
+    relationType: GenRelationType
+  ) => {
+    // Plus de mapping nécessaire : on utilise directement relationType
+    const isFirstMember = !relationTargetId;
+    const storedType = relationType; // Type détaillé stocké directement
 
-  try {
-    // 1. Créer la personne en base
-    const created = await createPerson(newMember);
+    try {
+      // 1. Créer la personne en base
+      const created = await createPerson(newMember);
 
-    // 2. Créer la relation bidirectionnelle (sauf si premier membre)
-    if (!isFirstMember) {
-      await createRelation(created.id, relationTargetId, storedType);
+      // 2. Créer les deux sens de la relation (sauf si premier membre)
+      if (!isFirstMember) {
+        const inverseType = getInverseRelationType(storedType);
+        await Promise.all([
+          createRelation(created.id, relationTargetId, storedType),
+          createRelation(relationTargetId, created.id, inverseType),
+        ]);
+      }
+
+      // 3. Construire l'objet Person complet pour l'état local
+      const inverseType = getInverseRelationType(storedType);
+
+      const member: Person = {
+        id: created.id,
+        firstName: created.firstName,
+        lastName: created.lastName,
+        generation: created.generation,
+        relations: isFirstMember
+          ? []
+          : [{ targetId: relationTargetId, type: storedType }],
+      };
+
+      // 4. Mettre à jour la personne de référence avec la relation inverse
+      const updatedFamily = isFirstMember
+        ? familyData
+        : familyData.map((p) =>
+            p.id === relationTargetId
+              ? {
+                  ...p,
+                  relations: [
+                    ...p.relations,
+                    { targetId: created.id, type: inverseType },
+                  ],
+                }
+              : p
+          );
+
+      setFamilyData([...updatedFamily, member]);
+      setSelectedPerson(member);
+      setIsCreating(false);
+    } catch (err) {
+      console.error("Erreur ajout membre:", err);
+      alert("Erreur lors de l'ajout. Réessaie.");
     }
-
-    // 3. Construire l'objet Person complet pour l'état local
-    const inverseType = (storedType === "parent" ? "child"
-      : storedType === "child" ? "parent"
-      : storedType) as StoredRelationType;
-
-    const member: Person = {
-      id: created.id,
-      firstName: created.firstName,
-      lastName: created.lastName,
-      generation: created.generation,
-      relations: isFirstMember
-        ? []
-        : [{ targetId: relationTargetId, type: storedType as StoredRelationType }],
-    };
-
-    // 4. Mettre à jour la personne de référence avec la relation inverse
-    const updatedFamily = isFirstMember
-      ? familyData
-      : familyData.map((p) =>
-          p.id === relationTargetId
-            ? {
-                ...p,
-                relations: [
-                  ...p.relations,
-                  { targetId: created.id, type: inverseType },
-                ],
-              }
-            : p
-        );
-
-    setFamilyData([...updatedFamily, member]);
-    setSelectedPerson(member);
-    setIsCreating(false);
-  } catch (err) {
-    console.error("Erreur ajout membre:", err);
-    alert("Erreur lors de l'ajout. Réessaie.");
-  }
-};
+  };
 
   // ---------------------------------------------------------------------------
   // Rendu
@@ -176,8 +196,17 @@ const handleAddMember = async (
           selectedPerson={selectedPerson}
           onSelectPerson={setSelectedPerson}
           onAddMember={handleCreatePerson}
+          filters={activeFilters}
         />
       </div>
+
+      {/* === Panneau de filtres === */}
+      {!isCreating && (
+        <FilterPanel
+          filters={activeFilters}
+          onChange={setActiveFilters}
+        />
+      )}
 
       {/* === Moteur de recherche — affiché si >= 10 personnes === */}
       {familyData.length >= 10 && !isCreating && (
