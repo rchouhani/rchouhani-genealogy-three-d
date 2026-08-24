@@ -15,13 +15,6 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Types de relations stockés en base.
- * Valeurs volontairement restreintes : la granularité (ex. "mother" vs "father")
- * est gérée au niveau de l'UI via RelationType dans utils/generation.ts.
- */
-export type StoredRelationType = "parent" | "child" | "sibling" | "spouse";
-
-/**
  * Une relation entre deux personnes.
  *
  * @property targetId  - ID de la personne liée (celle vers qui la relation pointe).
@@ -32,7 +25,7 @@ export type StoredRelationType = "parent" | "child" | "sibling" | "spouse";
  */
 export interface Relation {
   targetId: string;  // UUID
-  type: StoredRelationType;
+  type: import("../utils/generation").RelationType;
 }
 
 // ---------------------------------------------------------------------------

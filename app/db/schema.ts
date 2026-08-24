@@ -28,10 +28,48 @@ import {
  * Correspond à StoredRelationType dans family.ts.
  */
 export const relationTypeEnum = pgEnum("relation_type", [
+  // Types de base (compatibilité)
   "parent",
   "child",
   "sibling",
   "spouse",
+  
+  // Mes proches (détaillés)
+  "mother",
+  "father",
+  "son",
+  "daughter",
+  "brother",
+  "sister",
+  "wife",
+  "husband",
+  
+  // Famille élargie
+  "uncle",
+  "aunt",
+  "cousin",
+  "nephew",
+  "niece",
+  
+  // Famille recomposée
+  "stepFather",
+  "stepMother",
+  "stepBrother",
+  "stepSister",
+  
+  // Par alliance
+  "brotherInLaw",
+  "sisterInLaw",
+  "sonInLaw",
+  "daughterInLaw",
+  
+  // Intergénérationnel
+  "grandFather",
+  "grandMother",
+  "grandParent",
+  "grandChild",
+  "grandUncle",
+  "grandAunt",
 ]);
 
 // ---------------------------------------------------------------------------

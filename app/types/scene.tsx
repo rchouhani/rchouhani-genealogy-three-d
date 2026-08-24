@@ -89,6 +89,33 @@ export interface CreateLinksResult {
  * @property onFreeze - Toggle le freeze de la scène.
  * @property isFrozen - État actuel du freeze (pour l'affichage du bouton).
  */
+
+// ---------------------------------------------------------------------------
+// Filtres de relations
+// ---------------------------------------------------------------------------
+
+/**
+ * Catégories de relations pour le filtrage.
+ */
+export type RelationFilterCategory =
+  | "proches"                  // Mes proches (parents, enfants, fratrie, conjoint)
+  | "elargie"                  // Famille élargie (oncles/tantes, cousins, neveux/nièces)
+  | "recomposee"               // Famille recomposée (beaux-parents, demi-frères/sœurs)
+  | "parAlliance"              // Par alliance (beaux-frères/sœurs, gendres/brus)
+  | "intergenerationnel";      // Intergénérationnel (grands-parents, petits-enfants, etc.)
+
+/**
+ * État des filtres actifs.
+ * Si tous sont false, "proches" est appliqué par défaut.
+ */
+export interface RelationFilters {
+  proches: boolean;
+  elargie: boolean;
+  recomposee: boolean;
+  parAlliance: boolean;
+  intergenerationnel: boolean;
+}
+
 export interface ControlsPanelProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -97,3 +124,4 @@ export interface ControlsPanelProps {
   onAddMember: () => void;
   isFrozen: boolean;
 }
+

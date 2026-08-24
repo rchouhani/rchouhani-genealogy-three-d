@@ -14,6 +14,8 @@ import {
 } from "../lib/eventHandlers";
 import ControlsPanel from "./ControlsPanel";
 import { Person } from "../types/family";
+import { RelationFilters } from "../types/scene";
+// import { getVisiblePersonIds } from "../lib/relationFilters";
 import { SceneSetup, LineObject, HitboxObject } from "../types/scene";
 
 interface TreeSceneProps {
@@ -21,6 +23,7 @@ interface TreeSceneProps {
   selectedPerson: Person | null;
   onSelectPerson: (person: Person) => void;
   onAddMember: () => void;
+  filters: RelationFilters;
 }
 
 const FOCUS_DISTANCE = 20;
@@ -31,6 +34,7 @@ export default function TreeScene({
   selectedPerson,
   onSelectPerson,
   onAddMember,
+  filters,
 }: TreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneSetup | null>(null);
