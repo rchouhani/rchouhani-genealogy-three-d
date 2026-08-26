@@ -30,10 +30,46 @@ const mouse = new THREE.Vector2();
  * Utilisé dans le tooltip au hover sur les traits.
  */
 const RELATION_LABELS: Record<string, string> = {
+  // Mes proches
   parent: "Parent",
+  mother: "Mère",
+  father: "Père",
   child: "Enfant",
+  son: "Fils",
+  daughter: "Fille",
   sibling: "Frère / Sœur",
+  brother: "Frère",
+  sister: "Sœur",
   spouse: "Conjoint(e)",
+  wife: "Épouse",
+  husband: "Époux",
+
+  // Famille élargie
+  uncle: "Oncle",
+  aunt: "Tante",
+  cousin: "Cousin(e)",
+  nephew: "Neveu",
+  niece: "Nièce",
+
+  // Famille recomposée
+  stepFather: "Beau-père",
+  stepMother: "Belle-mère",
+  stepBrother: "Demi-frère",
+  stepSister: "Demi-sœur",
+
+  // Par alliance
+  brotherInLaw: "Beau-frère",
+  sisterInLaw: "Belle-sœur",
+  sonInLaw: "Gendre",
+  daughterInLaw: "Belle-fille",
+
+  // Intergénérationnel
+  grandFather: "Grand-père",
+  grandMother: "Grand-mère",
+  grandParent: "Grand-parent",
+  grandChild: "Petit-enfant",
+  grandUncle: "Grand-oncle",
+  grandAunt: "Grand-tante",
 };
 
 // ---------------------------------------------------------------------------
@@ -46,8 +82,13 @@ const RELATION_LABELS: Record<string, string> = {
  */
 function createTooltip(): HTMLDivElement {
   const tooltip = document.createElement("div");
+  // "fixed" et non "absolute" : le tooltip est positionné avec
+  // event.clientX/clientY, qui sont des coordonnées VIEWPORT (indépendantes
+  // du scroll). "absolute" se positionne par rapport au document entier et
+  // se décale dès que la page scrolle, même légèrement — ce qui donnait
+  // l'impression que le tooltip "s'éloigne" du curseur.
   tooltip.style.position = "fixed";
-  tooltip.style.background = "rgba(29, 106, 156, 0.75)";
+  tooltip.style.background = "rgba(0,0,0,0.75)";
   tooltip.style.color = "white";
   tooltip.style.padding = "4px 10px";
   tooltip.style.borderRadius = "4px";
