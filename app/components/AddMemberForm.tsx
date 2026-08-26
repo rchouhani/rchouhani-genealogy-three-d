@@ -2,101 +2,94 @@
 
 import { useState } from "react";
 import { Person } from "../types/family";
-import {
-  RelationType as GenRelationType,
-  computeGeneration,
-} from "../utils/generation";
+import { RelationType as GenRelationType, computeGeneration } from "../utils/generation";
 import RelationSelector from "./RelationSelector";
 
 interface AddMemberFormProps {
   familyMembers: Person[];
   /**
-   * Callback vers page.tsx.
-   *
-   * @param newMember        - Prénom, nom, génération (sans ID, sans relations).
-   * @param relationTargetId - ID de la personne de référence. Vide si premier membre.
-   * @param relationType     - Type de relation. Ignoré si premier membre.
+   * @param newMember        - Prénom, nom, génération.
+   * @param relationTargetId - ID de LA personne de référence, chaîne vide
+   *                            si base vide (premier membre).
+   * @param relationType     - Type de relation vis-à-vis de cette référence.
    */
   onAddMember: (
     newMember: Omit<Person, "id" | "relations">,
     relationTargetId: string,
     relationType: GenRelationType
   ) => void;
+  /**
+   * Optionnel : id d'une personne à présélectionner dans le <select> à
+   * l'ouverture. Utilisé quand le formulaire est ouvert depuis l'icône
+   * "Ajouter" (+) de PersonDetailModal — la personne consultée devient
+   * la référence par défaut, l'utilisateur n'a plus qu'à choisir le type
+   * de relation.
+   */
+  presetTargetId?: string;
 }
 
 /**
- * Formulaire d'ajout d'un membre à la famille.
+ * Formulaire d'ajout d'un membre.
  *
  * Deux modes :
- *   - Base vide (familyMembers.length === 0) :
- *       Seuls prénom et nom sont demandés.
- *       La personne est créée à la génération 0, sans relation.
- *       C'est le cas du premier utilisateur qui se crée lui-même.
- *
- *   - Base non vide :
- *       Prénom, nom, type de relation et personne de référence sont obligatoires.
+ *   - Base vide     : prénom + nom uniquement, génération 0, sans relation.
+ *   - Base non vide : prénom, nom, type de relation, et UNE personne de
+ *     référence choisie via un <select> (pas de multi-sélection).
  */
 export default function AddMemberForm({
   familyMembers,
   onAddMember,
+  presetTargetId,
 }: AddMemberFormProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [relationType, setRelationType] = useState<GenRelationType>("child");
-  const [relationTargetId, setRelationTargetId] = useState<string>("");
+  // Pré-rempli avec presetTargetId s'il est fourni, sinon vide comme avant
+  // (l'utilisateur devra alors choisir manuellement dans le <select>).
+  const [relationTargetId, setRelationTargetId] = useState<string>(
+    presetTargetId ?? ""
+  );
   const [error, setError] = useState("");
 
-  /** Premier membre : base actuellement vide. */
   const isFirstMember = familyMembers.length === 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (!firstName.trim() || !lastName.trim()) {
-      alert("Le prénom et le nom sont obligatoires.");
+      setError("Le prénom et le nom sont obligatoires.");
       return;
     }
 
-    // --- Cas base vide : premier membre ---
+    // --- Cas base vide : premier membre, aucune relation possible ---
     if (isFirstMember) {
       onAddMember(
-        {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          generation: 0,
-        },
-        "", // pas de référence
-        "child" // ignoré dans page.tsx si relationTargetId est vide
+        { firstName: firstName.trim(), lastName: lastName.trim(), generation: 0 },
+        "",
+        "child"
       );
-
       setFirstName("");
       setLastName("");
       return;
     }
 
-    // --- Cas base non vide : relation obligatoire ---
+    // --- Cas base non vide : une référence est obligatoire ---
     if (!relationTargetId) {
-      setError("Choisis une personne de référence.");
+      setError("Sélectionne une personne de référence.");
       return;
     }
-    setError("")
 
-    const target = familyMembers.find((m) => m.id === relationTargetId);
-    if (!target) {
+    const reference = familyMembers.find((m) => m.id === relationTargetId);
+    if (!reference) {
       setError("Personne de référence introuvable.");
       return;
     }
-    setError("")
 
-
-    const generation = computeGeneration(target.generation, relationType);
+    const generation = computeGeneration(reference.generation, relationType);
 
     onAddMember(
-      {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        generation,
-      },
+      { firstName: firstName.trim(), lastName: lastName.trim(), generation },
       relationTargetId,
       relationType
     );
@@ -109,14 +102,18 @@ export default function AddMemberForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      {/* Message contextuel */}
       {isFirstMember && (
         <p className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded">
           Vous êtes le premier membre. Entrez simplement votre prénom et nom.
         </p>
       )}
 
-      {/* Prénom */}
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">
+          {error}
+        </p>
+      )}
+
       <input
         type="text"
         placeholder="Prénom"
@@ -126,7 +123,6 @@ export default function AddMemberForm({
         required
       />
 
-      {/* Nom */}
       <input
         type="text"
         placeholder="Nom"
@@ -136,7 +132,7 @@ export default function AddMemberForm({
         required
       />
 
-      {/* Relation + Référence — uniquement si base non vide */}
+      {/* Relation + référence — uniquement si base non vide */}
       {!isFirstMember && (
         <>
           <label className="text-sm text-gray-600 dark:text-gray-300">
@@ -151,18 +147,14 @@ export default function AddMemberForm({
             value={relationTargetId}
             onChange={(e) => setRelationTargetId(e.target.value)}
             className="border px-3 py-2 rounded dark:bg-gray-700 dark:text-gray-100"
-            required
           >
-            <option value="">Choisir une personne</option>
+            <option value="">— Choisir une personne —</option>
             {familyMembers.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.firstName} {member.lastName} (Gén. {member.generation})
               </option>
             ))}
           </select>
-          {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
         </>
       )}
 
