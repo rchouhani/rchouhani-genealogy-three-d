@@ -75,6 +75,10 @@ export async function fetchFamilyData(): Promise<Person[]> {
     relations: relationRows
       .filter((r) => r.sourceId === p.id)
       .map((r): Relation => ({
+        // On garde l'id de la ligne "relations" en base : c'est ce qui
+        // permet de cibler EXACTEMENT cette entrée avec DELETE /api/relations/:id
+        // (rappel : une relation UI = 2 lignes en base, une par sens).
+        id: r.id,
         targetId: r.targetId,
         type: r.type,
       })),
@@ -145,7 +149,18 @@ export async function createRelation(
  */
 export async function updatePerson(
   id: string,
-  data: Partial<Omit<Person, "id" | "relations">>
+  // deathDate/deathLocation exclus de l'Omit puis redéfinis avec `| null` :
+  // même correction que dans page.tsx et EditPersonForm.tsx. Sans ça,
+  // TypeScript fusionne "string | undefined" (hérité de Person) avec
+  // "string | null" par intersection et perd le `null`, qui sert pourtant
+  // à vider explicitement la date de décès quand l'utilisateur décoche
+  // "décédé(e)" (voir EditPersonForm.handleSubmit).
+  data: Partial<
+    Omit<Person, "id" | "relations" | "deathDate" | "deathLocation">
+  > & {
+    deathDate?: string | null;
+    deathLocation?: string | null;
+  }
 ): Promise<PersonRow> {
   const res = await fetch(`/api/persons/${id}`, {
     method: "PATCH",
@@ -178,5 +193,32 @@ export async function deletePerson(id: string): Promise<void> {
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error ?? "Erreur lors de la suppression.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Suppression d'une relation
+// ---------------------------------------------------------------------------
+
+/**
+ * Supprime UNE SEULE entrée relation (un seul sens).
+ *
+ * Rappel important : une relation "visuelle" (ex. Pierre ↔ Lucas, père/fils)
+ * correspond à DEUX lignes en base (Pierre→Lucas type="father" ET
+ * Lucas→Pierre type="son"). Pour supprimer complètement le lien, il faut
+ * appeler cette fonction DEUX FOIS avec les deux id concernés.
+ * C'est EditPersonForm / page.tsx qui orchestre ce double appel,
+ * pas cette fonction (elle reste volontairement simple, un seul id = un seul DELETE).
+ *
+ * @param relationId - UUID de la ligne "relations" à supprimer (Relation.id).
+ */
+export async function deleteRelation(relationId: string): Promise<void> {
+  const res = await fetch(`/api/relations/${relationId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? "Erreur lors de la suppression de la relation.");
   }
 }
