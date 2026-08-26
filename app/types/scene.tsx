@@ -8,6 +8,7 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RelationType } from "../utils/generation";
 
 // ---------------------------------------------------------------------------
 // Scène
@@ -43,7 +44,7 @@ export interface LineObject {
   sourceId: string;
   targetId: string;
   line: THREE.Line;
-  type: "parent" | "child" | "sibling" | "spouse";
+  type: RelationType; // les 34 types détaillés, pas les 4 catégories de base
 }
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ export interface HitboxObject {
   mesh: THREE.Mesh;
   sourceId: string;
   targetId: string;
-  type: "parent" | "child" | "sibling" | "spouse";
+  type: RelationType; // les 34 types détaillés, pas les 4 catégories de base
 }
 
 /**
@@ -77,6 +78,32 @@ export interface HitboxObject {
 export interface CreateLinksResult {
   lines: LineObject[];
   hitboxes: HitboxObject[];
+}
+
+// ---------------------------------------------------------------------------
+// Filtres de relations
+// ---------------------------------------------------------------------------
+
+/**
+ * Catégories de relations pour le filtrage.
+ */
+export type RelationFilterCategory =
+  | "proches"                  // Mes proches (parents, enfants, fratrie, conjoint)
+  | "elargie"                  // Famille élargie (oncles/tantes, cousins, neveux/nièces)
+  | "recomposee"               // Famille recomposée (beaux-parents, demi-frères/sœurs)
+  | "parAlliance"              // Par alliance (beaux-frères/sœurs, gendres/brus)
+  | "intergenerationnel";      // Intergénérationnel (grands-parents, petits-enfants, etc.)
+
+/**
+ * État des filtres actifs.
+ * Si tous sont false, "proches" est appliqué par défaut.
+ */
+export interface RelationFilters {
+  proches: boolean;
+  elargie: boolean;
+  recomposee: boolean;
+  parAlliance: boolean;
+  intergenerationnel: boolean;
 }
 
 // ---------------------------------------------------------------------------
