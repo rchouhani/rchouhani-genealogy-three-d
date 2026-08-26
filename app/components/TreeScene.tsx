@@ -14,6 +14,8 @@ import {
 } from "../lib/eventHandlers";
 import ControlsPanel from "./ControlsPanel";
 import { Person } from "../types/family";
+import { RelationFilters } from "../types/scene";
+import { getVisiblePersonIds } from "../lib/relationFilters";
 import { SceneSetup, LineObject, HitboxObject } from "../types/scene";
 
 interface TreeSceneProps {
@@ -21,6 +23,7 @@ interface TreeSceneProps {
   selectedPerson: Person | null;
   onSelectPerson: (person: Person) => void;
   onAddMember: () => void;
+  filters: RelationFilters;
 }
 
 const FOCUS_DISTANCE = 20;
@@ -31,6 +34,7 @@ export default function TreeScene({
   selectedPerson,
   onSelectPerson,
   onAddMember,
+  filters,
 }: TreeSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneSetup | null>(null);
@@ -183,6 +187,31 @@ export default function TreeScene({
       lookAt: targetPos,
     };
   }, [selectedPerson]);
+
+  // ---------------------------------------------------------------------------
+  // Application des filtres de relations
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!selectedPerson || !sceneRef.current) return;
+
+    const visibleIds = getVisiblePersonIds(
+      selectedPerson.id,
+      familyData,
+      filters
+    );
+
+    console.log("FILTERS EFFECT — filters:", filters);
+    console.log("FILTERS EFFECT — visibleIds:", Array.from(visibleIds));
+
+    // Applique la visibilité aux lignes : visible uniquement si les DEUX
+    // extrémités (source et cible) font partie du résultat du filtrage.
+    linesRef.current.forEach((lineObj) => {
+      const isVisible =
+        visibleIds.has(lineObj.sourceId) && visibleIds.has(lineObj.targetId);
+      lineObj.line.visible = isVisible;
+    });
+  }, [selectedPerson, familyData, filters]);
 
   // ---------------------------------------------------------------------------
   // Contrôles
