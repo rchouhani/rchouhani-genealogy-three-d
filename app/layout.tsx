@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// Next.js processes global CSS imports, but TypeScript has no declaration for this stylesheet.
+// @ts-expect-error -- CSS is handled by Next.js during the build.
 import './globals.css';
 
 const geistSans = Geist({
