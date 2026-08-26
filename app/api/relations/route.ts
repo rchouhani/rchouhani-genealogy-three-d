@@ -61,16 +61,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calcul du type inverse
-    const inverseType = getInverseType(type);
-
-    // Création des deux sens en une seule transaction
-    const created = await db
+    // Création d'UNE SEULE relation
+    // Le front appelle deux fois POST pour créer les deux sens
+    const [created] = await db
       .insert(relations)
-      .values([
-        { sourceId, targetId, type },
-        { sourceId: targetId, targetId: sourceId, type: inverseType },
-      ])
+      .values({ sourceId, targetId, type })
       .returning();
 
     return NextResponse.json(created, { status: 201 });
@@ -80,24 +75,5 @@ export async function POST(request: Request) {
       { error: "Erreur lors de la création de la relation." },
       { status: 500 }
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Utilitaire
-// ---------------------------------------------------------------------------
-
-/**
- * Retourne le type inverse d'une relation.
- * Utilisé pour créer la relation symétrique en base.
- */
-function getInverseType(
-  type: "parent" | "child" | "sibling" | "spouse"
-): "parent" | "child" | "sibling" | "spouse" {
-  switch (type) {
-    case "parent":  return "child";
-    case "child":   return "parent";
-    case "sibling": return "sibling";
-    case "spouse":  return "spouse";
   }
 }
