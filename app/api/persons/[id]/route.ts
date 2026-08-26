@@ -4,6 +4,13 @@
  * GET    /api/persons/:id   → récupère une personne par ID
  * PATCH  /api/persons/:id   → met à jour une personne
  * DELETE /api/persons/:id   → supprime une personne (cascade sur les relations)
+ *
+ * Next.js 15+ : `params` est désormais une Promise dans les routes
+ * dynamiques (fini l'accès synchrone `params.id`). Il faut le "unwrap"
+ * avec `await` avant de lire `.id`, sur CHAQUE handler (GET/PATCH/DELETE),
+ * sinon l'erreur "params is a Promise and must be unwrapped" apparaît
+ * (c'est elle qui causait le 404 sur PATCH : params.id valait undefined,
+ * donc aucune ligne ne correspondait au WHERE).
  */
 
 import { NextResponse } from "next/server";
@@ -17,13 +24,16 @@ import { persons } from "@/app/db/schema";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Unwrap obligatoire avant d'accéder à .id (Next.js 15+).
+    const { id } = await params;
+
     const [person] = await db
       .select()
       .from(persons)
-      .where(eq(persons.id, params.id));
+      .where(eq(persons.id, id));
 
     if (!person) {
       return NextResponse.json(
@@ -51,15 +61,16 @@ export async function GET(
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     const [updated] = await db
       .update(persons)
       .set(body)
-      .where(eq(persons.id, params.id))
+      .where(eq(persons.id, id))
       .returning();
 
     if (!updated) {
@@ -86,12 +97,14 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     const [deleted] = await db
       .delete(persons)
-      .where(eq(persons.id, params.id))
+      .where(eq(persons.id, id))
       .returning();
 
     if (!deleted) {
