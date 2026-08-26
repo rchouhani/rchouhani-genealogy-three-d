@@ -18,17 +18,21 @@ import { relations } from "@/app/db/schema";
  *
  * Note : supprime uniquement cette entrée.
  * Si la relation inverse doit aussi être supprimée,
- * le client doit faire un second appel ou passer par
- * une route dédiée /api/relations/between/:sourceId/:targetId.
+ * le client doit faire un second appel (voir handleDeleteRelationInEdit
+ * dans page.tsx, qui fait exactement ça).
  */
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Next.js 15+ : params est une Promise, unwrap obligatoire avant .id
+    // (voir api/persons/[id]/route.ts pour le contexte complet).
+    const { id } = await params;
+
     const [deleted] = await db
       .delete(relations)
-      .where(eq(relations.id, params.id))
+      .where(eq(relations.id, id))
       .returning();
 
     if (!deleted) {
