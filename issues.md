@@ -8,9 +8,9 @@ Problème potentiel :
 - canvas zombie
 - interactions incohérentes
 Solutions à envisager : 
-- Gérer le cleanup de montage / démontage du composant treescene
-- En dév, passer next.config.js { reactStrictMode: false, }
-- dans le fichier layout.tsx :
+1. Gérer le cleanup de montage / démontage du composant treescene
+2. En dév, passer next.config.js { reactStrictMode: false, }
+3. dans le fichier layout.tsx :
     <React.StrictMode>
         {children}
     </React.StrictMode>
