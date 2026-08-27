@@ -126,6 +126,16 @@ export default function TreeScene({
     animate();
 
     return () => {
+      // Nettoyer les listeners d'interaction AVANT tout le reste.
+      // Sans ça, React StrictMode (dev) monte→démonte→remonte le composant
+      // une fois au chargement ; si les listeners du premier montage ne sont
+      // pas détruits ici, ils restent actifs pendant que le composant se
+      // remonte et recrée SES PROPRES listeners par-dessus — d'où le
+      // double affichage (deux jeux de listeners actifs simultanément,
+      // parfois deux scènes qui se superposent visuellement).
+      if (cleanupHoverRef.current) cleanupHoverRef.current();
+      if (cleanupClickRef.current) cleanupClickRef.current();
+
       cleanupResize();
       cleanupResetKey();
       setup.renderer.dispose();
@@ -200,9 +210,6 @@ export default function TreeScene({
       familyData,
       filters
     );
-
-    console.log("FILTERS EFFECT — filters:", filters);
-    console.log("FILTERS EFFECT — visibleIds:", Array.from(visibleIds));
 
     // Applique la visibilité aux lignes : visible uniquement si les DEUX
     // extrémités (source et cible) font partie du résultat du filtrage.
