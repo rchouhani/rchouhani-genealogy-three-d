@@ -8,6 +8,7 @@
  * Tables :
  *   - persons   : les membres de l'arbre généalogique
  *   - relations : les liens entre membres
+ *   - users/accounts/sessions/verification_tokens : NextAuth (v4)
  */
 
 import {
@@ -17,6 +18,7 @@ import {
   integer,
   timestamp,
   pgEnum,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -28,11 +30,83 @@ import {
  * Correspond à StoredRelationType dans family.ts.
  */
 export const relationTypeEnum = pgEnum("relation_type", [
-  "parent",
-  "child",
-  "sibling",
-  "spouse",
+  // Mes proches
+  "parent", "mother", "father",
+  "child", "son", "daughter",
+  "sibling", "brother", "sister",
+  "spouse", "wife", "husband",
+
+  // Famille élargie
+  "uncle", "aunt", "cousin", "nephew", "niece",
+
+  // Famille recomposée
+  "stepFather", "stepMother", "stepBrother", "stepSister",
+
+  // Par alliance
+  "brotherInLaw", "sisterInLaw", "sonInLaw", "daughterInLaw",
+
+  // Intergénérationnel
+  "grandFather", "grandMother", "grandParent",
+  "grandChild", "grandUncle", "grandAunt",
 ]);
+
+// ---------------------------------------------------------------------------
+// Tables NextAuth v4 (schéma requis par @next-auth/drizzle-adapter)
+// ---------------------------------------------------------------------------
+
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name"),
+  email: text("email").notNull(),
+  emailVerified: timestamp("email_verified"),
+  image: text("image"),
+});
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Pas de contrainte de type précise ici : AdapterAccountType est un
+    // type Auth.js v5 (@auth/core), inexistant dans next-auth v4.
+    type: text("type").notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (account) => ({
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+  })
+);
+
+export const sessions = pgTable("sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires").notNull(),
+});
+
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires").notNull(),
+  },
+  (vt) => ({
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  })
+);
 
 // ---------------------------------------------------------------------------
 // Table : persons
@@ -41,10 +115,10 @@ export const relationTypeEnum = pgEnum("relation_type", [
 export const persons = pgTable("persons", {
   /** UUID généré automatiquement par PostgreSQL. */
   id: uuid("id").defaultRandom().primaryKey(),
-
+  
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-
   /**
    * Position verticale dans l'arbre 3D.
    * 0 = racine, valeurs positives = générations descendantes.
