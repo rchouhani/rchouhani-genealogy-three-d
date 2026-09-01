@@ -12,12 +12,15 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.3",
     "@neondatabase/serverless": "^1.0.2",
     "drizzle-orm": "^0.45.1",
     "next": "^16.1.6",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -29,10 +32,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.180.0",
+    "@types/ws": "^8.18.1",
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.10.0",
     "dotenv": "^17.3.1",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^10.0.1",
     "eslint-config-next": "^16.1.6",
     "jest": "^30.2.0",
