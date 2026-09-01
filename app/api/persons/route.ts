@@ -1,78 +1,55 @@
 /**
- * @fileoverview Route API : /api/persons
- *
- * GET  /api/persons         → liste toutes les personnes
- * POST /api/persons         → crée une nouvelle personne
+ * @fileoverview Route API : /api/persons — version finale avec withUserContext.
+ * Chaque requête passe maintenant par withUserContext, qui pose
+ * `SET LOCAL app.current_user_id` avant d'exécuter — préparation pour RLS
+ * (étape 5). Le filtre .where(eq(persons.ownerId, userId)) explicite reste
+ * en place : défense en profondeur, RLS filtrera EN PLUS une fois activé.
  */
 
 import { NextResponse } from "next/server";
-import { db } from "@/app/db";
+import { auth } from "@/app/lib/auth";
 import { persons } from "@/app/db/schema";
+import { eq } from "drizzle-orm";
+import { encryptPersonFields, decryptPersonFields } from "@/app/lib/crypto";
+import { withUserContext } from "@/app/lib/withUserContext";
 
-// ---------------------------------------------------------------------------
-// GET /api/persons
-// ---------------------------------------------------------------------------
-
-/**
- * Retourne la liste complète des personnes.
- * Les relations sont chargées séparément via /api/relations.
- */
 export async function GET() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  }
+  const userId = (session.user as { id: string }).id;
+
   try {
-    const all = await db.select().from(persons);
-    return NextResponse.json(all);
+    const ownPersons = await withUserContext(userId, (tx) =>
+      tx.select().from(persons).where(eq(persons.ownerId, userId))
+    );
+
+    return NextResponse.json(ownPersons.map(decryptPersonFields));
   } catch (error) {
     console.error("[GET /api/persons]", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la récupération des personnes." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
   }
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/persons
-// ---------------------------------------------------------------------------
-
-/**
- * Crée une nouvelle personne.
- *
- * Body attendu :
- * {
- *   firstName: string,
- *   lastName: string,
- *   generation: number,
- *   birthName?: string,
- *   birthDate?: string,
- *   deathDate?: string,
- *   birthLocation?: string,
- *   deathLocation?: string,
- *   photoUrl?: string
- * }
- */
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  }
+  const userId = (session.user as { id: string }).id;
+
   try {
     const body = await request.json();
-    const { firstName, lastName, generation, ...optional } = body;
+    const encrypted = encryptPersonFields(body);
 
-    if (!firstName || !lastName || generation === undefined) {
-      return NextResponse.json(
-        { error: "firstName, lastName et generation sont obligatoires." },
-        { status: 400 }
-      );
-    }
+    const [created] = await withUserContext(userId, (tx) =>
+      tx.insert(persons).values({ ...encrypted, ownerId: userId }).returning()
+    );
 
-    const [created] = await db
-      .insert(persons)
-      .values({ firstName, lastName, generation, ...optional })
-      .returning();
-
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(decryptPersonFields(created), { status: 201 });
   } catch (error) {
     console.error("[POST /api/persons]", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la création de la personne." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
   }
 }
