@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import TreeScene from "./components/TreeScene";
 import SearchEngine from "./components/SearchEngine";
 import AddMemberForm from "./components/AddMemberForm";
 import EditPersonForm from "./components/EditPersonForm";
-import PersonDetailModal from "./components/PersonDetailModal";
 import FilterPanel from "./components/FilterPanel";
 import { Person } from "./types/family";
 import { RelationFilters } from "./types/scene";
@@ -18,6 +17,7 @@ import {
   deletePerson,
   deleteRelation,
 } from "./lib/api";
+import HoverInfoTooltip from "./components/HoverInfoTooltip";
 
 /**
  * Retourne le type de relation inverse.
@@ -64,6 +64,10 @@ export default function Page() {
   const [familyData, setFamilyData] = useState<Person[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [hoverInfo, setHoverInfo] = useState<{
+          person: Person;
+          position: { x: number; y: number };
+          } | null>(null);
 
   /**
    * Personne actuellement en cours d'édition (null = aucun formulaire ouvert).
@@ -77,7 +81,6 @@ export default function Page() {
    * TreeScene) et doit donc pouvoir rester défini même quand l'utilisateur
    * ferme juste la modale (la caméra reste centrée, seule la fenêtre se ferme).
    */
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   /**
    * Id de la personne à pré-cocher dans AddMemberForm quand celui-ci est
@@ -99,6 +102,17 @@ export default function Page() {
     intergenerationnel: false,
   });
 
+  const handleHoverPerson = useCallback(
+  (person: Person | null, screenPosition?: { x: number; y: number }) => {
+    if (person && screenPosition) {
+      setHoverInfo({ person, position: screenPosition });
+    } else {
+      setHoverInfo(null);
+    }
+  },
+  [] // setHoverInfo est stable par React — aucune dépendance nécessaire
+);
+
   // ---------------------------------------------------------------------------
   // Chargement initial depuis l'API
   // ---------------------------------------------------------------------------
@@ -108,6 +122,17 @@ export default function Page() {
       .then((data) => {
         setFamilyData(data);
         setIsLoading(false);
+
+        // Personne active par défaut : génération 0 (convention "racine"),
+        // ou la première personne si aucune n'a cette génération. Sans ça,
+        // aucun fondu croisé n'a de point de départ cohérent au premier clic.
+        if (data.length > 0) {
+          const defaultActive = 
+          data.find((p) => p.isSelf) ??
+          data.find((p) => p.generation === 0) ?? 
+          data[0];
+          setSelectedPerson(defaultActive);
+        }
       })
       .catch((err) => {
         console.error("Erreur chargement famille:", err);
@@ -125,10 +150,9 @@ export default function Page() {
    * de recherche) : centre la caméra dessus (géré par TreeScene via
    * selectedPerson) ET ouvre la modale de détails en lecture seule.
    */
-  const handleSelectPerson = (person: Person) => {
-    setSelectedPerson(person);
-    setIsDetailModalOpen(true);
-  };
+  const handleSelectPerson = useCallback((person: Person) => {
+  setSelectedPerson(person);
+}, []);
 
   /**
    * Ouvre AddMemberForm sans référence pré-cochée — c'est le bouton "+"
@@ -156,6 +180,11 @@ export default function Page() {
     const storedType = relationType; // Type détaillé stocké directement
 
     try {
+      // Le premier membre crée par un utilisateur est cet utilisateur
+      const payload = isFirstMember
+        ? { ...newMember, isSelf: true }
+        : newMember;
+
       // 1. Créer la personne en base
       const created = await createPerson(newMember);
 
@@ -215,7 +244,6 @@ export default function Page() {
    * les deux fenêtres ne doivent jamais être ouvertes en même temps.
    */
   const handleEditPerson = (person: Person) => {
-    setIsDetailModalOpen(false);
     setEditingPerson(person);
   };
 
@@ -224,7 +252,6 @@ export default function Page() {
    * Déclenché par l'icône "Ajouter" (+) de PersonDetailModal.
    */
   const handleAddRelativeFromModal = (person: Person) => {
-    setIsDetailModalOpen(false);
     setAddMemberPresetId(person.id);
     setIsCreating(true);
   };
@@ -444,7 +471,6 @@ export default function Page() {
       // Referme toute fenêtre qui pointait vers cette personne.
       if (selectedPerson?.id === id) {
         setSelectedPerson(null);
-        setIsDetailModalOpen(false);
       }
       if (editingPerson?.id === id) {
         setEditingPerson(null);
@@ -485,6 +511,7 @@ export default function Page() {
           onSelectPerson={handleSelectPerson}
           onAddMember={handleCreatePerson}
           filters={activeFilters}
+          onHoverPerson={handleHoverPerson}
         />
       </div>
 
@@ -538,14 +565,13 @@ export default function Page() {
       )}
 
       {/* === Modale de détails — ouverte au clic sur un point === */}
-      {isDetailModalOpen && selectedPerson && !isCreating && !editingPerson && (
-        <PersonDetailModal
-          person={selectedPerson}
-          familyMembers={familyData}
-          onClose={() => setIsDetailModalOpen(false)}
-          onEdit={() => handleEditPerson(selectedPerson)}
-          onAddRelative={() => handleAddRelativeFromModal(selectedPerson)}
-          onDelete={() => handleDeleteFromModal(selectedPerson)}
+      {hoverInfo && !isCreating && !editingPerson && (
+        <HoverInfoTooltip
+          person={hoverInfo.person}
+          position={hoverInfo.position}
+          onEdit={() => handleEditPerson(hoverInfo.person)}
+          onAddRelative={() => handleAddRelativeFromModal(hoverInfo.person)}
+          onDelete={() => handleDeleteFromModal(hoverInfo.person)}
         />
       )}
 
