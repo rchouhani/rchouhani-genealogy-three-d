@@ -67,7 +67,7 @@ export interface Person {
   lastName: string;
   generation: number;
   relations: Relation[];
-
+  isSelf?: boolean;
   // --- Champs anticipés BDD — optionnels aujourd'hui ---
   birthName?: string;
   birthDate?: string;       // ISO 8601 (ex. "1945-03-12"). String pour éviter les problèmes de sérialisation.
