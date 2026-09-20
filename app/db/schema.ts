@@ -19,6 +19,7 @@ import {
   timestamp,
   pgEnum,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -135,7 +136,7 @@ export const persons = pgTable("persons", {
   deathLocation: text("death_location"),
   /** URL vers le fichier hébergé (ex. Cloudflare R2). */
   photoUrl: text("photo_url"),
-
+  isSelf: boolean("is_self").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),});
 
