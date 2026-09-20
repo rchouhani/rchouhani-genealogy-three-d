@@ -14,14 +14,22 @@ export function setupScene(container: HTMLElement | null): SceneSetup {
   );
   
   // IMPORTANT : position modifiée pour voir l'arbre qui descend vers le bas
-  camera.position.set(0, 10, 50); // y=10 au lieu de 0
-  camera.lookAt(0, -6, 0); // regarde vers le milieu de l'arbre (génération 1)
+  // ET décalée sur X (pas juste Y/Z) : avec le nouveau système de
+  // profondeur réelle (Z représente l'empilement de plusieurs personnes
+  // dans une même case colonne+génération), une caméra alignée pile sur
+  // X=0 verrait ces personnes exactement superposées à l'écran — leur
+  // décalage en Z ne se traduit visuellement en rien tant que le rayon
+  // de vue reste parallèle à l'axe Z. Un léger angle latéral (X non nul)
+  // rend cette profondeur réellement visible et cliquable séparément.
+  camera.position.set(20, 10, 50);
+  camera.lookAt(0, -6, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container?.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
+  // controls.enableRotate = false;
   controls.enableDamping = true;
   controls.enablePan = true;
   controls.enableZoom = true;
